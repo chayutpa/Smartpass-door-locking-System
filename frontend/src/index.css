@@ -1,0 +1,495 @@
+/* ---------- ธีมพื้นฐาน ---------- */
+* { box-sizing: border-box; }
+
+:root {
+  --brand-500: #2563eb;
+  --brand-600: #1d4ed8;
+  --brand-900: #1e3a8a;
+  --shadow-brand: 0 10px 30px rgba(37, 99, 235, 0.12);
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, "Segoe UI", Roboto, "Sarabun", sans-serif;
+  background: linear-gradient(180deg, #eef1f6 0%, #e6ebf7 100%);
+  color: #1a1a1a;
+}
+
+.page {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 32px 20px;
+  min-height: 100vh;
+}
+
+/* ---------- การ์ด ---------- */
+.card {
+  background: white;
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: var(--shadow-brand);
+  margin-bottom: 16px;
+  border: 1px solid rgba(37, 99, 235, 0.06);
+}
+
+.card h3 {
+  margin-top: 0;
+  color: #1e293b;
+}
+
+/* ---------- ฟอร์ม ---------- */
+input,
+select {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1.5px solid #dde2ea;
+  border-radius: 12px;
+  margin-bottom: 12px;
+  font-size: 15px;
+  font-family: inherit;
+  background: #fbfcfe;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+input:focus,
+select:focus {
+  outline: none;
+  border-color: var(--brand-500);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+  background: white;
+}
+
+/* ---------- ปุ่ม ---------- */
+button {
+  width: 100%;
+  padding: 12px 14px;
+  border: none;
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--brand-500) 0%, var(--brand-600) 100%);
+  color: white;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, opacity 0.12s ease;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.28);
+}
+
+button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(37, 99, 235, 0.34);
+}
+
+button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+button:disabled {
+  background: #b7c5e8;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+button.secondary {
+  background: #eef2ff;
+  color: var(--brand-600);
+  box-shadow: none;
+}
+
+button.secondary:hover:not(:disabled) {
+  background: #e0e7ff;
+}
+
+button.danger {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  box-shadow: 0 4px 14px rgba(220, 38, 38, 0.25);
+}
+
+.link-btn {
+  background: #eef2ff;
+  color: var(--brand-600);
+  width: auto;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 999px;
+  box-shadow: none;
+  transition: background 0.15s ease, color 0.15s ease, transform 0.12s ease;
+}
+
+.link-btn:hover:not(:disabled) {
+  background: #dbe4ff;
+  color: var(--brand-900);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(37, 99, 235, 0.18);
+  text-decoration: none;
+}
+
+.link-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+/* ปุ่มออกจากระบบให้เป็นโทนแดงจางๆ แยกจากปุ่มอื่น */
+.top-nav > div:last-child .link-btn:last-child {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.top-nav > div:last-child .link-btn:last-child:hover:not(:disabled) {
+  background: #fee2e2;
+  color: #991b1b;
+  box-shadow: 0 4px 10px rgba(220, 38, 38, 0.18);
+}
+
+/* ---------- ปุ่มปลดล็อก (วงกลมใหญ่) ---------- */
+.unlock-btn {
+  width: 168px;
+  height: 168px;
+  border-radius: 50%;
+  font-size: 18px;
+  margin: 24px auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 12px 30px rgba(37, 99, 235, 0.35);
+}
+
+.unlock-btn:hover:not(:disabled) {
+  transform: scale(1.03);
+}
+
+/* ---------- สถานะ / ข้อความ ---------- */
+.error {
+  color: #dc2626;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 14px;
+  margin-bottom: 12px;
+}
+
+.success {
+  color: #15803d;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 14px;
+  margin-bottom: 12px;
+}
+
+.status-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 6px;
+}
+
+.status-online {
+  background: #16a34a;
+  box-shadow: 0 0 0 4px rgba(22, 163, 74, 0.18);
+}
+
+.status-offline {
+  background: #9ca3af;
+}
+
+/* ---------- ตาราง ---------- */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+thead th {
+  text-align: left;
+  padding: 10px 8px;
+  background: #f3f6fd;
+  color: #475569;
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+thead th:first-child { border-radius: 10px 0 0 10px; }
+thead th:last-child { border-radius: 0 10px 10px 0; }
+
+td {
+  text-align: left;
+  padding: 12px 8px;
+  border-bottom: 1px solid #eef1f6;
+}
+
+tbody tr:hover {
+  background: #fafbff;
+}
+
+/* ---------- badge ---------- */
+.badge {
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.badge-yes {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.badge-no {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+/* ---------- แถบด้านบน (top-nav) ---------- */
+.top-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  background: white;
+  border-radius: 18px;
+  padding: 16px 20px;
+  box-shadow: var(--shadow-brand);
+  border: 1px solid rgba(37, 99, 235, 0.06);
+}
+
+.top-nav b {
+  color: #1e293b;
+  font-size: 16px;
+}
+
+code {
+  background: #f3f6fd;
+  padding: 2px 6px;
+  border-radius: 6px;
+  font-family: "SFMono-Regular", Consolas, monospace;
+}
+
+/* ---------- หน้า Login / Register แบบ 2 คอลัมน์ ---------- */
+.auth-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(180deg, #eef1f6 0%, #e6ebf7 100%);
+  padding: 24px;
+}
+
+.auth-page .auth-panel {
+  margin: auto 0;
+}
+
+.auth-page .site-footer {
+  margin-top: 24px;
+  margin-bottom: 0;
+}
+
+.auth-panel {
+  display: flex;
+  width: 100%;
+  max-width: 860px;
+  min-height: 480px;
+  background: white;
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow: 0 20px 50px rgba(37, 99, 235, 0.18);
+}
+
+.auth-left {
+  flex: 1;
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 55%, #1e3a8a 100%);
+  position: relative;
+  overflow: hidden;
+  padding: 48px 40px;
+  color: white;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.auth-left::before {
+  content: "";
+  position: absolute;
+  width: 320px;
+  height: 320px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  top: -120px;
+  left: -100px;
+}
+
+.auth-left::after {
+  content: "";
+  position: absolute;
+  width: 220px;
+  height: 220px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.07);
+  bottom: -80px;
+  right: -60px;
+}
+
+.auth-left h1 {
+  font-size: 30px;
+  margin: 0 0 6px;
+  position: relative;
+  z-index: 1;
+}
+
+.auth-left .auth-subhead {
+  font-size: 13px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  opacity: 0.85;
+  margin: 0 0 18px;
+  position: relative;
+  z-index: 1;
+}
+
+.auth-left p {
+  font-size: 14px;
+  line-height: 1.6;
+  opacity: 0.9;
+  max-width: 280px;
+  position: relative;
+  z-index: 1;
+}
+
+.auth-right {
+  flex: 1;
+  padding: 48px 40px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.auth-right h2 {
+  margin: 0 0 24px;
+  font-size: 26px;
+}
+
+.auth-field-label {
+  font-size: 13px;
+  color: #555;
+  margin-bottom: 4px;
+  display: block;
+}
+
+.auth-right input {
+  margin-bottom: 18px;
+}
+
+.auth-bottom-text {
+  text-align: center;
+  margin-top: 16px;
+  font-size: 14px;
+  color: #555;
+}
+
+.auth-bottom-text a {
+  color: var(--brand-500);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+@media (max-width: 720px) {
+  .auth-panel {
+    flex-direction: column;
+    max-width: 420px;
+  }
+  .auth-left {
+    padding: 32px 28px;
+    min-height: 160px;
+  }
+}
+
+/* ---------- ปุ่มดู/ซ่อนรหัสผ่าน ---------- */
+.password-field {
+  position: relative;
+  margin-bottom: 12px;
+}
+
+.password-field input {
+  padding-right: 44px;
+  margin-bottom: 0;
+}
+
+.password-toggle,
+.password-toggle:hover,
+.password-toggle:active,
+.password-toggle:focus {
+  position: absolute;
+  right: 6px;
+  top: 0;
+  bottom: 0;
+  margin: auto 0;
+  transform: none !important;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  background: none;
+  border: none;
+  box-shadow: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #9aa3b5;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.password-toggle:hover {
+  color: #64748b;
+  background: #f1f4fa;
+}
+
+.password-toggle svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* ---------- footer ที่อยู่/ติดต่อ ---------- */
+.site-footer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  margin-top: 32px;
+  padding: 20px 16px 8px;
+  text-align: center;
+  color: #b8bfcc;
+  font-size: 12.5px;
+}
+
+.site-footer-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.site-footer-item svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  opacity: 0.8;
+}
+
+.site-footer a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.site-footer a:hover {
+  color: #94a0b5;
+  text-decoration: underline;
+}
+
+.auth-page .site-footer {
+  color: #a9b2c3;
+}
