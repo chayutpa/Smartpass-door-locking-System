@@ -2,6 +2,10 @@
 // ESP32 แต่ละตัวต่อเข้ามาที่ path /ws/esp32?secret=XXXX ค้างไว้ตลอดเวลา (persistent connection)
 // secret เป็นของเฉพาะห้อง (เก็บใน Room.secret) ใช้แยกว่า connection ไหนเป็นของห้องไหน
 import { Room } from "../models/Room.js";
+import { AccessLog } from "../models/AccessLog.js";
+
+const pendingArms = new Map(); // requestId -> {resolve, reject, timer} รอ ack ว่า ESP32 arm สำเร็จ
+const armedRequests = new Map(); // requestId -> {userId, username, roomName} เก็บไว้ log ตอนรู้ผลจริง
 
 // roomId (string) -> Set ของ socket ที่ต่ออยู่ (ปกติห้องละ 1 ตัว แต่รองรับหลายตัวเผื่อ ESP32 สำรอง)
 const connectedDevicesByRoom = new Map();
@@ -92,6 +96,39 @@ export default async function esp32WsRoute(fastify) {
           })
           .catch((err) => fastify.log.error(`อัปเดตสถานะรหัสฉุกเฉินของห้อง ${room.name} ล้มเหลว: ${err.message}`));
       }
+      // ESP32 ตอบกลับทันทีว่า arm สำเร็จ พร้อมรับการกดปุ่มแล้ว
+      if (msg.type === "armed_ack" && msg.requestId && pendingArms.has(msg.requestId)) {
+        const pending = pendingArms.get(msg.requestId);
+        clearTimeout(pending.timer);
+        pending.resolve(true);
+        pendingArms.delete(msg.requestId);
+      }
+
+      // มีคนกดปุ่มจริงที่หน้าห้องสำเร็จ ปลดล็อกจริงแล้ว
+      if (msg.type === "unlock_confirmed" && msg.requestId) {
+        const info = armedRequests.get(msg.requestId);
+        armedRequests.delete(msg.requestId);
+        if (info) {
+          AccessLog.create({
+            user: info.userId, username: info.username,
+            room: roomId, roomName: info.roomName,
+            action: "unlock_success", detail: msg.requestId,
+          }).catch((err) => fastify.log.error(`log unlock_success ล้มเหลว: ${err.message}`));
+        }
+      }
+
+      // หมดเวลา 10 วิ ไม่มีใครกดปุ่ม
+      if (msg.type === "arm_expired" && msg.requestId) {
+        const info = armedRequests.get(msg.requestId);
+        armedRequests.delete(msg.requestId);
+        if (info) {
+          AccessLog.create({
+            user: info.userId, username: info.username,
+            room: roomId, roomName: info.roomName,
+            action: "unlock_failed", detail: "หมดเวลา ไม่มีการกดปุ่มที่หน้าห้อง",
+          }).catch((err) => fastify.log.error(`log arm_expired ล้มเหลว: ${err.message}`));
+        }
+      }
     };
 
     // ปลดบัฟเฟอร์ชั่วคราวออก แล้วผูก handler จริงแทน
@@ -162,8 +199,9 @@ export function pushOfflineCodesSync(roomId, offlineCodes) {
   }
 }
 
-// ส่งคำสั่งปลดล็อกไปยัง ESP32 ของห้องที่ระบุ แล้วรอ ack กลับมา (timeout 8 วิ)
-export function sendUnlockCommand(roomId, requestId, timeoutMs = 8000) {
+// ส่งคำสั่ง "arm" (ขอสิทธิ์) ไปให้ ESP32 ของห้องที่ระบุ แล้วรอ ack แค่ว่า ESP32 ได้รับคำสั่งจริง
+// (ไม่ใช่รอว่าปลดล็อกสำเร็จ เพราะต้องรอคนไปกดปุ่มจริงที่หน้าห้องก่อน)
+export function sendArmCommand(roomId, requestId, meta, timeoutMs = 5000) {
   return new Promise((resolve, reject) => {
     const set = connectedDevicesByRoom.get(roomId.toString());
     if (!set || set.size === 0) {
@@ -171,14 +209,16 @@ export function sendUnlockCommand(roomId, requestId, timeoutMs = 8000) {
       return;
     }
 
+    armedRequests.set(requestId, meta); // เก็บไว้ log ตอนได้ผลจริง (unlock_confirmed/arm_expired)
+
     const timer = setTimeout(() => {
-      pendingAcks.delete(requestId);
+      pendingArms.delete(requestId);
       reject(new Error("ESP32 ไม่ตอบกลับภายในเวลาที่กำหนด"));
     }, timeoutMs);
 
-    pendingAcks.set(requestId, { resolve, reject, timer });
+    pendingArms.set(requestId, { resolve, reject, timer });
 
-    const payload = JSON.stringify({ type: "unlock", requestId });
+    const payload = JSON.stringify({ type: "arm", requestId, windowSeconds: 10 });
     for (const socket of set) {
       socket.send(payload);
     }

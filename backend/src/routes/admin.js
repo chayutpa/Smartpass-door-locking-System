@@ -117,6 +117,18 @@ export default async function adminRoutes(fastify) {
     return reply.send({ message: "ลบห้องแล้ว" });
   });
 
+  // ตั้งรายชื่อคณะ/สาขาที่จะได้สิทธิ์ห้องนี้อัตโนมัติตอน SSO login ครั้งแรก
+  fastify.patch("/api/admin/rooms/:id/auto-grant", { preHandler }, async (request, reply) => {
+    const { id } = request.params;
+    const { faculties } = request.body || {};
+    if (!Array.isArray(faculties)) {
+      return reply.code(400).send({ error: "faculties ต้องเป็น array" });
+    }
+    const room = await Room.findByIdAndUpdate(id, { autoGrantFaculties: faculties }, { new: true });
+    if (!room) return reply.code(404).send({ error: "ไม่พบห้องนี้" });
+    return reply.send({ room });
+  });
+
   // ---------- รหัสฉุกเฉินสำหรับปลดล็อกตอน ESP32 ไม่มีอินเทอร์เน็ต ----------
 
   // สร้างชุดรหัสฉุกเฉินใหม่ทั้ง 10 ชุด (ใช้ตอนตั้งห้องครั้งแรก หรือต้องการล้างของเก่าทิ้งทั้งหมด)

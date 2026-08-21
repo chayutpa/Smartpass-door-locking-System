@@ -1,16 +1,12 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
 import { api } from "../api.js";
-import { useAuth } from "../App.jsx";
-import Footer from "../Footer.jsx";
+import Layout from "../components/Layout.jsx";
 
 export default function Dashboard() {
-  const { user, setUser } = useAuth();
   const [rooms, setRooms] = useState([]);
   const [error, setError] = useState("");
   const [unlockingId, setUnlockingId] = useState(null);
-  const [messages, setMessages] = useState({}); // roomId -> ข้อความผลลัพธ์ล่าสุดของห้องนั้น
-  const navigate = useNavigate();
+  const [messages, setMessages] = useState({});
 
   const loadRooms = async () => {
     try {
@@ -23,7 +19,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     loadRooms();
-    const interval = setInterval(loadRooms, 5000); // เช็คสถานะห้องทุก 5 วิ
+    const interval = setInterval(loadRooms, 3000);
     return () => clearInterval(interval);
   }, []);
 
@@ -40,31 +36,8 @@ export default function Dashboard() {
     }
   };
 
-  const onLogout = async () => {
-    await api.logout();
-    setUser(null);
-    navigate("/login");
-  };
-
   return (
-    <div className="page">
-      <div className="top-nav">
-        <div>
-          <b>{user?.displayName || user?.username}</b>
-          <div style={{ fontSize: 13, color: "#666" }}>{user?.role === "admin" ? "ผู้ดูแลระบบ" : "ผู้ใช้งาน"}</div>
-        </div>
-        <div>
-          {user?.role === "admin" && (
-            <Link to="/admin" className="link-btn" style={{ marginRight: 8 }}>
-              จัดการสิทธิ์
-            </Link>
-          )}
-          <button className="link-btn" onClick={onLogout}>
-            ออกจากระบบ
-          </button>
-        </div>
-      </div>
-
+    <Layout>
       {error && <div className="error">{error}</div>}
 
       {rooms.length === 0 && !error && (
@@ -81,6 +54,11 @@ export default function Dashboard() {
               <span className={`status-dot ${room.online ? "status-online" : "status-offline"}`}></span>
               ห้อง {room.name} — {room.online ? "ออนไลน์" : "ออฟไลน์"}
             </div>
+            {!room.online && (
+              <p style={{ color: "#b45309", fontSize: 13, marginTop: -4 }}>
+                ห้องนี้ไม่มีอินเทอร์เน็ต กดปุ่มที่หน้าห้อง 1 ครั้งเพื่อเปิดโหมดปลดล็อกฉุกเฉิน
+              </p>
+            )}
 
             {msg && <div className={msg.type === "success" ? "success" : "error"}>{msg.text}</div>}
 
@@ -89,14 +67,13 @@ export default function Dashboard() {
               onClick={() => onUnlock(room)}
               disabled={unlockingId === room.id || !room.canUnlock || !room.online}
             >
-              {unlockingId === room.id ? "กำลังปลดล็อก..." : `ปลดล็อก ${room.name}`}
+              {unlockingId === room.id ? "กำลังส่งคำขอ..." : `ขอสิทธิ์ ${room.name}`}
             </button>
 
             {!room.canUnlock && <p style={{ color: "#666", fontSize: 14 }}>คุณยังไม่มีสิทธิ์ปลดล็อกห้องนี้ กรุณาติดต่อ admin</p>}
           </div>
         );
       })}
-      <Footer />
-    </div>
+    </Layout>
   );
 }

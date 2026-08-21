@@ -17,10 +17,13 @@ async function request(path, options = {}) {
 }
 
 export const api = {
-  register: (username, password, displayName) =>
-    request("/api/auth/register", { method: "POST", body: JSON.stringify({ username, password, displayName }) }),
-  login: (username, password) =>
-    request("/api/auth/login", { method: "POST", body: JSON.stringify({ username, password }) }),
+  login: (loginId, password) =>
+    request("/api/auth/login", { method: "POST", body: JSON.stringify({ loginId, password }) }),
+  ssoInit: () => request("/api/auth/sso/init", { method: "POST" }),
+  ssoExchange: (code, state) =>
+    request("/api/auth/sso/exchange", { method: "POST", body: JSON.stringify({ code, state }) }),
+  setPassword: (password) =>
+    request("/api/auth/set-password", { method: "POST", body: JSON.stringify({ password }) }),
   logout: () => request("/api/auth/logout", { method: "POST" }),
   me: () => request("/api/auth/me"),
 
@@ -38,6 +41,8 @@ export const api = {
   renameRoom: (id, name) => request(`/api/admin/rooms/${id}`, { method: "PATCH", body: JSON.stringify({ name }) }),
   regenerateRoomSecret: (id) => request(`/api/admin/rooms/${id}/regenerate-secret`, { method: "POST" }),
   deleteRoom: (id) => request(`/api/admin/rooms/${id}`, { method: "DELETE" }),
+  updateRoomAutoGrant: (roomId, faculties) =>
+    request(`/api/admin/rooms/${roomId}/auto-grant`, { method: "PATCH", body: JSON.stringify({ faculties }) }),
   generateOfflineCodes: (roomId) => request(`/api/admin/rooms/${roomId}/offline-codes/generate`, { method: "POST" }),
   regenerateOfflineCode: (roomId, index) =>
     request(`/api/admin/rooms/${roomId}/offline-codes/${index}/regenerate`, { method: "POST" }),

@@ -16,6 +16,9 @@ const roomSchema = new mongoose.Schema(
     secret: { type: String, required: true, unique: true }, // สุ่มตอนสร้างห้อง เอาไปฝังใน ESP32
     // ชุดรหัส 6 หลักสำหรับปลดล็อกตอน ESP32 ไม่มีอินเทอร์เน็ต (ESP32 ซิงก์มาเก็บเองผ่าน WebSocket ตอนออนไลน์)
     offlineCodes: { type: [offlineCodeSchema], default: [] },
+    // รายชื่อคณะ/สาขา (ตรงกับ field "faculty"/"program" ที่ SSO ส่งมา) ที่จะได้สิทธิ์ห้องนี้อัตโนมัติ
+    // ตอน user คนนั้นล็อกอิน SSO ครั้งแรก โดยไม่ต้องรอ admin ติ๊กอนุญาตทีละคน
+    autoGrantFaculties: { type: [String], default: [] },
   },
   { timestamps: true }
 );

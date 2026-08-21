@@ -1,9 +1,8 @@
-import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState } from "react";
 import { api } from "../api.js";
 import { useAuth } from "../App.jsx";
 
-export default function Login() {
+export default function LoginForm({ onBeforeSso }) {
   const [showPasswordForm, setShowPasswordForm] = useState(false);
   const [loginId, setLoginId] = useState("");
   const [password, setPassword] = useState("");
@@ -12,33 +11,12 @@ export default function Login() {
   const [loadingSso, setLoadingSso] = useState(false);
   const [loadingLogin, setLoadingLogin] = useState(false);
   const { refresh } = useAuth();
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    handleSsoCallback();
-  }, []);
-
-  const handleSsoCallback = async () => {
-    const params = new URLSearchParams(window.location.search);
-    const code = params.get("code");
-    const state = params.get("state");
-    if (!code || !state) return;
-
-    try {
-      await api.ssoExchange(code, state);
-      await refresh();
-      window.history.replaceState({}, "", "/login");
-      navigate("/");
-    } catch (err) {
-      setError(err.message);
-      window.history.replaceState({}, "", "/login");
-    }
-  };
 
   const onClickSso = async () => {
     setError("");
     setLoadingSso(true);
     try {
+      if (onBeforeSso) onBeforeSso(); // เก็บ pendingRoomId ไว้ก่อน redirect (ถ้ามี)
       const { authorizeUrl } = await api.ssoInit();
       window.location.href = authorizeUrl;
     } catch (err) {
@@ -54,7 +32,6 @@ export default function Login() {
     try {
       await api.login(loginId, password);
       await refresh();
-      navigate("/");
     } catch (err) {
       setError(err.message);
     } finally {
@@ -87,7 +64,7 @@ export default function Login() {
             </button>
           ) : (
             <form onSubmit={onSubmitPassword}>
-              <label className="auth-field-label">Username</label>
+              <label className="auth-field-label">Username (ไม่มี@rmuti.ac.th)</label>
               <input placeholder="Username" value={loginId} onChange={(e) => setLoginId(e.target.value)} />
 
               <label className="auth-field-label">Password</label>
@@ -123,6 +100,56 @@ export default function Login() {
               </button>
             </form>
           )}
+        </div>
+      </div>
+      <div className="contact-footer">
+        <div className="contact-row">
+          <a href="https://www.kkc.rmuti.ac.th/" target="_blank" rel="noreferrer" className="contact-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0Z" />
+              <circle cx="12" cy="10" r="3" />
+            </svg>
+            มหาวิทยาลัยเทคโนโลยีราชมงคลอีสาน วิทยาเขตขอนแก่น
+          </a>
+          <span className="contact-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M3 21h18" />
+              <path d="M5 21V7l8-4v18" />
+              <path d="M19 21V11l-6-4" />
+              <path d="M9 9v.01M9 12v.01M9 15v.01" />
+            </svg>
+            วิศวกรรมคอมพิวเตอร์
+          </span>
+        </div>
+
+        <div className="contact-row">
+          <span className="contact-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+              <circle cx="12" cy="7" r="4" />
+            </svg>
+            นายชยุตม์ ปฐมกำเหนิด
+          </span>
+          <a href="tel:0851839086" className="contact-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92Z" />
+            </svg>
+            085-183-9086
+          </a>
+          <span className="contact-item">หรือ</span>
+          <span className="contact-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+              <circle cx="12" cy="7" r="4" />
+            </svg>
+            ผศ.ดร.อติราช สุขสวัสดิ์
+          </span>
+          <a href="tel:0614515915" className="contact-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92Z" />
+            </svg>
+            061-451-5915
+          </a>
         </div>
       </div>
     </div>

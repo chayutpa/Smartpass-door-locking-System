@@ -1,34 +1,32 @@
-// สคริปต์สร้าง admin คนแรกของระบบ รันด้วย: npm run seed:admin
-// จะถามผ่าน argv: node src/seedAdmin.js <username> <password>
 import "dotenv/config";
 import bcrypt from "bcryptjs";
 import { connectDB } from "./db.js";
 import { User } from "./models/User.js";
 import mongoose from "mongoose";
 
-const [, , username, password] = process.argv;
-
-if (!username || !password) {
-  console.error("วิธีใช้: node src/seedAdmin.js <username> <password>");
+const [, , loginId, password] = process.argv;
+if (!loginId || !password) {
+  console.error("วิธีใช้: node src/seedAdmin.js <loginId> <password>");
   process.exit(1);
 }
 
 await connectDB();
 
-const existing = await User.findOne({ username: username.toLowerCase() });
+const existing = await User.findOne({ ssoId: loginId });
 if (existing) {
   existing.role = "admin";
   await existing.save();
-  console.log(`ตั้งให้ ${username} เป็น admin เรียบร้อยแล้ว`);
+  console.log(`ตั้งให้ ${loginId} เป็น admin เรียบร้อยแล้ว`);
 } else {
   const passwordHash = await bcrypt.hash(password, 12);
   await User.create({
-    username: username.toLowerCase(),
+    ssoId: loginId,
     passwordHash,
+    hasPassword: true,
     role: "admin",
-    displayName: username,
+    displayName: loginId,
   });
-  console.log(`สร้าง admin ใหม่ชื่อ ${username} เรียบร้อยแล้ว`);
+  console.log(`สร้าง admin ใหม่ (${loginId}) เรียบร้อยแล้ว — ล็อกอินด้วยฟอร์ม username/password ไม่ต้องผ่าน SSO`);
 }
 
 await mongoose.disconnect();
