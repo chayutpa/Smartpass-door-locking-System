@@ -10,12 +10,14 @@ services:
     env_file:
       - .env  # เปลี่ยนให้อ่านจาก root folder (ไฟล์เดียวกัน)
     networks:
-      - smart-door-net
+      - ecpproduct
     restart: unless-stopped
 
   frontend:
     build:
       context: ./frontend
+      args:
+        VITE_API_URL: ${VITE_API_URL}
     container_name: smart-door-frontend
     ports:
       - "4001:80"
@@ -24,9 +26,9 @@ services:
     depends_on:
       - backend
     networks:
-      - smart-door-net
+      - ecpproduct
     restart: unless-stopped
 
 networks:
-  smart-door-net:
+  ecpproduct:
     driver: bridge
