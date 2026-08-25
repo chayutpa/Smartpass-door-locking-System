@@ -2,8 +2,12 @@ import mongoose from "mongoose";
 
 export async function connectDB() {
   const uri = process.env.MONGODB_URI;
+  
+  // พิมพ์ค่าออกดูใน Logs ว่าเป็นอะไรกันแน่
+  console.log("[MongoDB] Checking URI:", uri ? "URI is provided (length: " + uri.length + ")" : "URI is MISSING");
+
   if (!uri) {
-    throw new Error("MONGODB_URI is not set in .env");
+    throw new Error("MONGODB_URI is not set in environment variables");
   }
 
   mongoose.connection.on("connected", () => {
