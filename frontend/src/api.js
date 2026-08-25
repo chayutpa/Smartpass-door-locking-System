@@ -19,16 +19,12 @@ async function request(path, options = {}) {
 export const api = {
   login: (loginId, password) =>
     request("/api/auth/login", { method: "POST", body: JSON.stringify({ loginId, password }) }),
-  ssoInit: () => request("/api/auth/sso/init", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({}) // ส่ง Body เปล่าไปด้วยเพื่อให้มี Content-Type ที่ถูกต้อง
-  }),
+  ssoInit: () => request("/api/auth/sso/init", { method: "POST",headers: { "Content-Type": "application/json" },body: JSON.stringify({}) }),
   ssoExchange: (code, state) =>
     request("/api/auth/sso/exchange", { method: "POST", body: JSON.stringify({ code, state }) }),
   setPassword: (password) =>
     request("/api/auth/set-password", { method: "POST", body: JSON.stringify({ password }) }),
-  logout: () => request("/api/auth/logout", { method: "POST" }),
+  logout: () => request("/api/auth/logout", { method: "POST",headers: { "Content-Type": "application/json" },body: JSON.stringify({}) }),
   me: () => request("/api/auth/me"),
 
   listRooms: () => request("/api/rooms"),
