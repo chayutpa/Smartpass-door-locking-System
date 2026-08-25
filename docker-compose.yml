@@ -7,6 +7,17 @@ services:
     container_name: smart-door-backend
     ports:
       - "4000:4000"
+    environment:
+      - MONGODB_URI          # บรรทัดนี้เป็นการบอกว่า "ให้ดึงค่า MONGODB_URI ที่ตั้งไว้ใน Portainer ส่งเข้ามาใน Container นี้"
+      - JWT_SECRET
+      - PORT
+      - SSO_CLIENT_ID
+      - SSO_CLIENT_SECRET
+      - SSO_REDIRECT_URI
+      - SSO_AUTHORIZE_URL
+      - SSO_TOKEN_URL
+      - SSO_USERINFO_URL
+      - SSO_SCOPE
     networks:
       - ecpproduct
     restart: unless-stopped
