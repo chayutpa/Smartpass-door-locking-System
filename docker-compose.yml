@@ -1,3 +1,5 @@
+version: '3.8'
+
 services:
   backend:
     build:
@@ -6,7 +8,9 @@ services:
     ports:
       - "4000:4000"
     env_file:
-      - ./backend/.env
+      - .env  # เปลี่ยนให้อ่านจาก root folder (ไฟล์เดียวกัน)
+    networks:
+      - smart-door-net
     restart: unless-stopped
 
   frontend:
@@ -15,6 +19,14 @@ services:
     container_name: smart-door-frontend
     ports:
       - "3000:80"
+    env_file:
+      - .env  # เปลี่ยนให้อ่านจาก root folder เช่นกัน
     depends_on:
       - backend
+    networks:
+      - smart-door-net
     restart: unless-stopped
+
+networks:
+  smart-door-net:
+    driver: bridge
