@@ -28,7 +28,7 @@ export const api = {
   me: () => request("/api/auth/me"),
 
   listRooms: () => request("/api/rooms"),
-  unlockRoom: (roomId) => request(`/api/door/${roomId}/unlock`, { method: "POST" }),
+  unlockRoom: (roomId) => request(`/api/door/${roomId}/unlock`, { method: "POST",headers: { "Content-Type": "application/json" },body: JSON.stringify({}) }),
 
   listUsers: () => request("/api/admin/users"),
   updateUserRole: (id, role) => request(`/api/admin/users/${id}`, { method: "PATCH", body: JSON.stringify({ role }) }),
@@ -39,13 +39,13 @@ export const api = {
   listAdminRooms: () => request("/api/admin/rooms"),
   createRoom: (name) => request("/api/admin/rooms", { method: "POST", body: JSON.stringify({ name }) }),
   renameRoom: (id, name) => request(`/api/admin/rooms/${id}`, { method: "PATCH", body: JSON.stringify({ name }) }),
-  regenerateRoomSecret: (id) => request(`/api/admin/rooms/${id}/regenerate-secret`, { method: "POST" }),
+  regenerateRoomSecret: (id) => request(`/api/admin/rooms/${id}/regenerate-secret`, { method: "POST",headers: { "Content-Type": "application/json" },body: JSON.stringify({}) }),
   deleteRoom: (id) => request(`/api/admin/rooms/${id}`, { method: "DELETE" }),
   updateRoomAutoGrant: (roomId, faculties) =>
     request(`/api/admin/rooms/${roomId}/auto-grant`, { method: "PATCH", body: JSON.stringify({ faculties }) }),
-  generateOfflineCodes: (roomId) => request(`/api/admin/rooms/${roomId}/offline-codes/generate`, { method: "POST" }),
+  generateOfflineCodes: (roomId) => request(`/api/admin/rooms/${roomId}/offline-codes/generate`, { method: "POST",headers: { "Content-Type": "application/json" },body: JSON.stringify({}) }),
   regenerateOfflineCode: (roomId, index) =>
-    request(`/api/admin/rooms/${roomId}/offline-codes/${index}/regenerate`, { method: "POST" }),
+    request(`/api/admin/rooms/${roomId}/offline-codes/${index}/regenerate`, { method: "POST",headers: { "Content-Type": "application/json" },body: JSON.stringify({}) }),
 
   listLogs: () => request("/api/admin/logs"),
 };
