@@ -38,4 +38,4 @@ services:
 
 networks:
   ecpproduct:
-    driver: bridge
+    external: true
