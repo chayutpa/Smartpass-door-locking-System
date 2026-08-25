@@ -19,7 +19,11 @@ async function request(path, options = {}) {
 export const api = {
   login: (loginId, password) =>
     request("/api/auth/login", { method: "POST", body: JSON.stringify({ loginId, password }) }),
-  ssoInit: () => request("/api/auth/sso/init", { method: "POST" }),
+  ssoInit: () => request("/api/auth/sso/init", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({}) // ส่ง Body เปล่าไปด้วยเพื่อให้มี Content-Type ที่ถูกต้อง
+  }),
   ssoExchange: (code, state) =>
     request("/api/auth/sso/exchange", { method: "POST", body: JSON.stringify({ code, state }) }),
   setPassword: (password) =>
@@ -46,6 +50,6 @@ export const api = {
   generateOfflineCodes: (roomId) => request(`/api/admin/rooms/${roomId}/offline-codes/generate`, { method: "POST" }),
   regenerateOfflineCode: (roomId, index) =>
     request(`/api/admin/rooms/${roomId}/offline-codes/${index}/regenerate`, { method: "POST" }),
-  
+
   listLogs: () => request("/api/admin/logs"),
 };
