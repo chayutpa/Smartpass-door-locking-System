@@ -18,7 +18,7 @@ const fastify = Fastify({ logger: true });
 await connectDB();
 
 await fastify.register(cors, {
-  origin: process.env.FRONTEND_ORIGIN || "http://localhost:5173",
+  origin: process.env.FRONTEND_ORIGIN ? process.env.FRONTEND_ORIGIN.split(',').map(o => o.trim()) : "http://localhost:5173",
   credentials: true, // จำเป็นเพื่อให้ browser ส่ง cookie ไปกับ request ข้าม origin
 });
 
