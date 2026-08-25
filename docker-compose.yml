@@ -18,7 +18,7 @@ services:
       context: ./frontend
     container_name: smart-door-frontend
     ports:
-      - "3000:4001"
+      - "4001:80"
     env_file:
       - .env  # เปลี่ยนให้อ่านจาก root folder เช่นกัน
     depends_on:
