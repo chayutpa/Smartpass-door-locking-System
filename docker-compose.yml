@@ -10,6 +10,7 @@ services:
     environment:
       - MONGODB_URI          # บรรทัดนี้เป็นการบอกว่า "ให้ดึงค่า MONGODB_URI ที่ตั้งไว้ใน Portainer ส่งเข้ามาใน Container นี้"
       - JWT_SECRET
+      - FRONTEND_ORIGIN
       - PORT
       - SSO_CLIENT_ID
       - SSO_CLIENT_SECRET
