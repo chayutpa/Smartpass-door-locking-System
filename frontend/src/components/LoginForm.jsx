@@ -44,8 +44,8 @@ export default function LoginForm({ onBeforeSso }) {
 
     setLoadingLogin(true);
     try {
-      const { user } = await api.login(loginId.trim(), password);
-      onLoggedIn(user, false);
+      await api.login(loginId.trim(), password);
+      await refresh();
     } catch (err) {
       setError(err.message);
     } finally {
