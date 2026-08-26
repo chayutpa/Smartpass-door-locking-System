@@ -59,8 +59,8 @@ export default function AdminLogs() {
   };
 
   return (
-  <Layout title="ประวัติการใช้งาน" subtitle="ตรวจสอบและค้นหาประวัติการปลดล็อกประตูย้อนหลัง">
-    {error && <div className="error">{error}</div>}
+    <Layout title="ประวัติการใช้งาน" subtitle="ตรวจสอบและค้นหาประวัติการปลดล็อกประตูย้อนหลัง">
+      {error && <div className="error">{error}</div>}
 
       <div className="card">
         <h3 style={{ marginTop: 0 }}>ค้นหาประวัติการใช้งาน</h3>
@@ -111,7 +111,8 @@ export default function AdminLogs() {
           <thead>
             <tr>
               <th>เวลา</th>
-              <th>ผู้ใช้</th>
+              <th>ชื่อผู้ใช้</th>
+              <th>รหัสนักศึกษา</th>
               <th>ห้อง</th>
               <th>สถานะ</th>
             </tr>
@@ -119,7 +120,7 @@ export default function AdminLogs() {
           <tbody>
             {filteredLogs.length === 0 ? (
               <tr>
-                <td colSpan={4} style={{ textAlign: "center", color: "#666", padding: 20 }}>
+                <td colSpan={5} style={{ textAlign: "center", color: "#666", padding: 20 }}>
                   ไม่พบประวัติที่ตรงกับตัวกรอง
                 </td>
               </tr>
@@ -127,7 +128,8 @@ export default function AdminLogs() {
               filteredLogs.map((log) => (
                 <tr key={log._id}>
                   <td>{new Date(log.createdAt).toLocaleString("th-TH")}</td>
-                  <td>{log.username}</td>
+                  <td>{log.user?.displayName || log.username}</td>
+                  <td>{log.user?.studentId || "-"}</td>
                   <td>{log.roomName || "-"}</td>
                   <td>{log.action}</td>
                 </tr>

@@ -161,7 +161,10 @@ export default async function adminRoutes(fastify) {
 
   // ---------- log ----------
   fastify.get("/api/admin/logs", { preHandler }, async (request, reply) => {
-    const logs = await AccessLog.find().sort({ createdAt: -1 }).limit(200);
+    const logs = await AccessLog.find()
+      .sort({ createdAt: -1 })
+      .limit(200)
+      .populate("user", "displayName studentId ssoId");
     return reply.send({ logs });
   });
 }
