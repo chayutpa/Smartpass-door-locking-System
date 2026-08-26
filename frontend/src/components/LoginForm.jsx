@@ -2,12 +2,12 @@ import React, { useState } from "react";
 import { api } from "../api.js";
 import { useAuth } from "../App.jsx";
 
-export default function LoginForm({ onBeforeSso }) {
+export default function LoginForm({ onBeforeSso, initialError }) {
   const [showPasswordForm, setShowPasswordForm] = useState(false);
   const [loginId, setLoginId] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState(initialError || "");
   const [loadingSso, setLoadingSso] = useState(false);
   const [loadingLogin, setLoadingLogin] = useState(false);
   const { refresh } = useAuth();

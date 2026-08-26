@@ -68,14 +68,5 @@ export default function Root() {
 
   if (user) return <Dashboard />;
 
-  return (
-    <>
-      {callbackError && (
-        <div className="page" style={{ paddingBottom: 0 }}>
-          <div className="error" style={{ maxWidth: 380 }}>{callbackError}</div>
-        </div>
-      )}
-      <LoginForm />
-    </>
-  );
+  return <LoginForm initialError={callbackError} />;
 }
