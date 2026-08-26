@@ -177,7 +177,16 @@ export default async function authRoutes(fastify) {
 
   fastify.post("/api/auth/login", async (request, reply) => {
     const { loginId, password } = request.body || {};
-    if (!loginId || !password) return reply.code(400).send({ error: "กรุณากรอก username และ password" });
+
+    if (!loginId?.trim() && !password) {
+      return reply.code(400).send({ error: "กรุณากรอก username และ password" });
+    }
+    if (!loginId?.trim()) {
+      return reply.code(400).send({ error: "กรุณากรอก username" });
+    }
+    if (!password) {
+      return reply.code(400).send({ error: "กรุณากรอกรหัสผ่าน" });
+    }
 
     const user = await User.findOne({ ssoId: loginId.trim() });
     if (!user || !user.hasPassword) {
@@ -189,7 +198,7 @@ export default async function authRoutes(fastify) {
     const token = fastify.jwt.sign({ sub: user._id.toString(), ssoId: user.ssoId, role: user.role }, { expiresIn: "12h" });
     reply.setCookie("token", token, {
       path: "/", httpOnly: true, sameSite: "lax",
-      secure: process.env.NODE_ENV === "production", 
+      secure: process.env.NODE_ENV === "production",
     });
     return reply.send({
       user: { id: user._id, ssoId: user.ssoId, displayName: user.displayName, role: user.role },

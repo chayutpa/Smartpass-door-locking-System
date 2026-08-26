@@ -28,10 +28,24 @@ export default function LoginForm({ onBeforeSso }) {
   const onSubmitPassword = async (e) => {
     e.preventDefault();
     setError("");
+
+    if (!loginId.trim() && !password) {
+      setError("กรุณากรอก username และ password");
+      return;
+    }
+    if (!loginId.trim()) {
+      setError("กรุณากรอก username");
+      return;
+    }
+    if (!password) {
+      setError("กรุณากรอกรหัสผ่าน");
+      return;
+    }
+
     setLoadingLogin(true);
     try {
-      await api.login(loginId, password);
-      await refresh();
+      const { user } = await api.login(loginId.trim(), password);
+      onLoggedIn(user, false);
     } catch (err) {
       setError(err.message);
     } finally {
