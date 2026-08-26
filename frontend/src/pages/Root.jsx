@@ -14,8 +14,24 @@ export default function Root() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
+    const ssoError = params.get("error");
     const code = params.get("code");
     const state = params.get("state");
+
+    if (ssoError) {
+      if (hasHandledCallback.current) return;
+      hasHandledCallback.current = true;
+
+      const message =
+        ssoError === "access_denied"
+          ? "คุณไม่ได้อนุญาตให้เข้าถึงข้อมูลจาก SSO กรุณาล็อกอินใหม่และกด “อนุญาต” เพื่อใช้งานระบบ"
+          : "เกิดข้อผิดพลาดระหว่างล็อกอินด้วย SSO กรุณาลองใหม่อีกครั้ง";
+
+      setCallbackError(message);
+      window.history.replaceState({}, "", "/");
+      return;
+    }
+
     if (!code || !state) return;
     if (hasHandledCallback.current) return;
     hasHandledCallback.current = true;
