@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from "react";
 import { api } from "../api.js";
 import Layout from "../components/Layout.jsx";
+import CountdownModal from "../components/CountdownModal.jsx";
 
 export default function Dashboard() {
   const [rooms, setRooms] = useState([]);
   const [error, setError] = useState("");
   const [unlockingId, setUnlockingId] = useState(null);
   const [messages, setMessages] = useState({});
+  const [armedRoom, setArmedRoom] = useState(null); // ห้องที่กำลังนับถอยหลังรอกดปุ่มอยู่
 
   const loadRooms = async () => {
     try {
@@ -27,8 +29,8 @@ export default function Dashboard() {
     setUnlockingId(room.id);
     setMessages((m) => ({ ...m, [room.id]: null }));
     try {
-      const data = await api.unlockRoom(room.id);
-      setMessages((m) => ({ ...m, [room.id]: { type: "success", text: data.message } }));
+      await api.unlockRoom(room.id);
+      setArmedRoom(room); // สำเร็จ -> เปิดโมดัลนับถอยหลังแทนข้อความ inline
     } catch (err) {
       setMessages((m) => ({ ...m, [room.id]: { type: "error", text: err.message } }));
     } finally {
@@ -74,6 +76,9 @@ export default function Dashboard() {
           </div>
         );
       })}
+      {armedRoom && (
+        <CountdownModal roomName={armedRoom.name} seconds={10} onClose={() => setArmedRoom(null)} />
+      )}
     </Layout>
   );
 }

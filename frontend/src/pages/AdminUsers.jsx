@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { api } from "../api.js";
 import Layout from "../components/Layout.jsx";
+import ConfirmModal from "../components/ConfirmModal.jsx";
 
 export default function AdminUsers() {
   const [users, setUsers] = useState([]);
@@ -8,6 +9,7 @@ export default function AdminUsers() {
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
   const [expandedUserId, setExpandedUserId] = useState(null);
+  const [confirmDeleteUser, setConfirmDeleteUser] = useState(null);
 
   const load = async () => {
     try {
@@ -33,9 +35,11 @@ export default function AdminUsers() {
     load();
   };
 
-  const removeUser = async (id) => {
-    if (!confirm("ยืนยันการลบผู้ใช้นี้?")) return;
-    await api.deleteUser(id);
+  const removeUser = (user) => setConfirmDeleteUser(user);
+
+  const confirmDelete = async () => {
+    await api.deleteUser(confirmDeleteUser._id);
+    setConfirmDeleteUser(null);
     load();
   };
 
@@ -50,8 +54,8 @@ export default function AdminUsers() {
   });
 
   return (
-  <Layout title="จัดการผู้ใช้" subtitle="ค้นหา ดูรายละเอียด และจัดการสิทธิ์ของผู้ใช้ในระบบ">
-    {error && <div className="error">{error}</div>}
+    <Layout title="จัดการผู้ใช้" subtitle="ค้นหา ดูรายละเอียด และจัดการสิทธิ์ของผู้ใช้ในระบบ">
+      {error && <div className="error">{error}</div>}
 
       <div className="card">
         <label className="auth-field-label">ค้นหาจากชื่อ, username หรือรหัสนักศึกษา</label>
@@ -124,7 +128,7 @@ export default function AdminUsers() {
                         </td>
                       ))}
                       <td>
-                        <button className="danger" style={{ width: "auto", padding: "6px 10px" }} onClick={() => removeUser(u._id)}>
+                        <button className="danger" style={{ width: "auto", padding: "6px 10px" }} onClick={() => removeUser(u)}>
                           ลบ
                         </button>
                       </td>
@@ -151,6 +155,16 @@ export default function AdminUsers() {
           </tbody>
         </table>
       </div>
+      {confirmDeleteUser && (
+        <ConfirmModal
+          title="ลบผู้ใช้"
+          message={`ยืนยันการลบผู้ใช้ ${confirmDeleteUser.displayName || confirmDeleteUser.ssoId}?`}
+          confirmLabel="ลบผู้ใช้"
+          danger
+          onConfirm={confirmDelete}
+          onCancel={() => setConfirmDeleteUser(null)}
+        />
+      )}
     </Layout>
   );
 }

@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { api } from "../api.js";
 import Layout from "../components/Layout.jsx";
+import ConfirmModal from "../components/ConfirmModal.jsx";
+import PromptModal from "../components/PromptModal.jsx";
 
 export default function AdminRooms() {
   const [rooms, setRooms] = useState([]);
@@ -9,6 +11,9 @@ export default function AdminRooms() {
   const [revealedSecret, setRevealedSecret] = useState(null); // {roomName, secret}
   const [qrRoom, setQrRoom] = useState(null);
   const [autoGrantInputs, setAutoGrantInputs] = useState({});
+  const [confirmAction, setConfirmAction] = useState(null); // {title, message, danger, confirmLabel, onConfirm}
+  const [renameTarget, setRenameTarget] = useState(null); // room ที่กำลังเปลี่ยนชื่ออยู่
+  const [copied, setCopied] = useState(false);
 
   const load = async () => {
     try {
@@ -36,35 +41,74 @@ export default function AdminRooms() {
     }
   };
 
-  const onRenameRoom = async (room) => {
-    const name = prompt("ตั้งชื่อห้องใหม่", room.name);
-    if (!name || !name.trim()) return;
-    await api.renameRoom(room._id, name.trim());
+  const onRenameRoom = (room) => setRenameTarget(room);
+
+  const confirmRename = async (newName) => {
+    await api.renameRoom(renameTarget._id, newName);
+    setRenameTarget(null);
     load();
   };
 
-  const onRegenerateSecret = async (room) => {
-    if (!confirm(`สุ่ม secret ใหม่ให้ห้อง ${room.name}? ต้องอัปโหลดโค้ด ESP32 ของห้องนี้ใหม่ด้วย ไม่งั้นจะเชื่อมต่อไม่ได้`)) return;
-    const { room: updated } = await api.regenerateRoomSecret(room._id);
-    setRevealedSecret({ roomName: updated.name, secret: updated.secret });
-    load();
+  const onRegenerateSecret = (room) => {
+    setConfirmAction({
+      title: "สุ่ม secret ใหม่",
+      message: `สุ่ม secret ใหม่ให้ห้อง ${room.name}? ต้องอัปโหลดโค้ด ESP32 ของห้องนี้ใหม่ด้วย ไม่งั้นจะเชื่อมต่อไม่ได้`,
+      confirmLabel: "สุ่มใหม่",
+      danger: true,
+      onConfirm: async () => {
+        const { room: updated } = await api.regenerateRoomSecret(room._id);
+        setRevealedSecret({ roomName: updated.name, secret: updated.secret });
+        setConfirmAction(null);
+        load();
+      },
+    });
   };
 
-  const onDeleteRoom = async (room) => {
-    if (!confirm(`ยืนยันการลบห้อง ${room.name}? สิทธิ์ของ user ทุกคนที่มีต่อห้องนี้จะถูกลบไปด้วย`)) return;
-    await api.deleteRoom(room._id);
-    load();
+  const onDeleteRoom = (room) => {
+    setConfirmAction({
+      title: "ลบห้อง",
+      message: `ยืนยันการลบห้อง ${room.name}? สิทธิ์ของ user ทุกคนที่มีต่อห้องนี้จะถูกลบไปด้วย`,
+      confirmLabel: "ลบห้อง",
+      danger: true,
+      onConfirm: async () => {
+        await api.deleteRoom(room._id);
+        setConfirmAction(null);
+        load();
+      },
+    });
   };
 
-  const onGenerateOfflineCodes = async (roomId) => {
-    if (!confirm("สร้างชุดรหัสฉุกเฉินใหม่ทั้ง 10 ชุด? ชุดเดิมทั้งหมดจะใช้ไม่ได้อีกทันที")) return;
-    await api.generateOfflineCodes(roomId);
-    load();
+  const onGenerateOfflineCodes = (roomId, roomName) => {
+    setConfirmAction({
+      title: "สร้างชุดรหัสฉุกเฉินใหม่",
+      message: "สร้างชุดรหัสฉุกเฉินใหม่ทั้ง 10 ชุด? ชุดเดิมทั้งหมดจะใช้ไม่ได้อีกทันที",
+      confirmLabel: "สร้างชุดใหม่",
+      danger: true,
+      onConfirm: async () => {
+        await api.generateOfflineCodes(roomId);
+        setConfirmAction(null);
+        load();
+      },
+    });
   };
 
-  const onRegenerateOfflineCode = async (roomId, index) => {
-    await api.regenerateOfflineCode(roomId, index);
-    load();
+  const onRegenerateOfflineCode = (roomId, index) => {
+    setConfirmAction({
+      title: "สุ่มรหัสใหม่",
+      message: `สุ่มรหัสฉุกเฉินชุดที่ ${index + 1} ใหม่? รหัสเดิมจะใช้ไม่ได้อีกทันที`,
+      confirmLabel: "สุ่มใหม่",
+      onConfirm: async () => {
+        await api.regenerateOfflineCode(roomId, index);
+        setConfirmAction(null);
+        load();
+      },
+    });
+  };
+
+  const copySecret = async () => {
+    await navigator.clipboard.writeText(revealedSecret.secret);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   const onSaveAutoGrant = async (roomId) => {
@@ -75,8 +119,8 @@ export default function AdminRooms() {
   };
 
   return (
-  <Layout title="จัดการห้อง" subtitle="เพิ่มห้องใหม่ ตั้งค่า secret สิทธิ์อัตโนมัติ และรหัสฉุกเฉินของแต่ละห้อง">
-    {error && <div className="error">{error}</div>}
+    <Layout title="จัดการห้อง" subtitle="เพิ่มห้องใหม่ ตั้งค่า secret สิทธิ์อัตโนมัติ และรหัสฉุกเฉินของแต่ละห้อง">
+      {error && <div className="error">{error}</div>}
 
       {/* ---------- เพิ่มห้องใหม่ ---------- */}
       <div className="card">
@@ -140,7 +184,7 @@ export default function AdminRooms() {
                 <button
                   className="secondary"
                   style={{ width: "auto", padding: "6px 10px" }}
-                  onClick={() => onGenerateOfflineCodes(room._id)}
+                  onClick={() => onGenerateOfflineCodes(room._id, room.name)}
                 >
                   สร้างชุดใหม่ทั้ง 10 ชุด
                 </button>
@@ -193,10 +237,18 @@ export default function AdminRooms() {
             <p>
               คัดลอกค่านี้ไปใส่ตัวแปร <code>WS_PATH</code> ในโค้ด ESP32 ของห้องนี้ (ส่วน <code>secret=...</code>) — ค่านี้จะไม่แสดงซ้ำอีก
             </p>
-            <code style={{ wordBreak: "break-all", fontSize: 13, display: "block", marginBottom: 16 }}>
+            <code style={{ wordBreak: "break-all", fontSize: 13, display: "block", marginBottom: 4 }}>
               {revealedSecret.secret}
             </code>
-            <button className="secondary" onClick={() => setRevealedSecret(null)}>
+            <button className="copy-btn secondary" onClick={copySecret}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="9" y="9" width="13" height="13" rx="2" />
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+              </svg>
+              {copied ? "คัดลอกแล้ว!" : "คัดลอก"}
+            </button>
+            <br />
+            <button className="secondary" onClick={() => setRevealedSecret(null)} style={{ marginTop: 12 }}>
               ปิด
             </button>
           </div>
@@ -224,6 +276,26 @@ export default function AdminRooms() {
             </button>
           </div>
         </div>
+      )}
+      {renameTarget && (
+        <PromptModal
+          title={`เปลี่ยนชื่อห้อง ${renameTarget.name}`}
+          defaultValue={renameTarget.name}
+          confirmLabel="บันทึก"
+          onConfirm={confirmRename}
+          onCancel={() => setRenameTarget(null)}
+        />
+      )}
+
+      {confirmAction && (
+        <ConfirmModal
+          title={confirmAction.title}
+          message={confirmAction.message}
+          confirmLabel={confirmAction.confirmLabel}
+          danger={confirmAction.danger}
+          onConfirm={confirmAction.onConfirm}
+          onCancel={() => setConfirmAction(null)}
+        />
       )}
     </Layout>
   );

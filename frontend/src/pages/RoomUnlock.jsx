@@ -4,6 +4,7 @@ import { api } from "../api.js";
 import { useAuth } from "../App.jsx";
 import LoginForm from "../components/LoginForm.jsx";
 import Layout from "../components/Layout.jsx";
+import CountdownModal from "../components/CountdownModal.jsx";
 
 export default function RoomUnlock() {
   const { roomId } = useParams();
@@ -12,6 +13,7 @@ export default function RoomUnlock() {
   const [error, setError] = useState("");
   const [unlocking, setUnlocking] = useState(false);
   const [message, setMessage] = useState(null);
+  const [armed, setArmed] = useState(false);
 
   const loadRoom = async () => {
     try {
@@ -35,8 +37,8 @@ export default function RoomUnlock() {
     setUnlocking(true);
     setMessage(null);
     try {
-      const data = await api.unlockRoom(roomId);
-      setMessage({ type: "success", text: data.message });
+      await api.unlockRoom(roomId);
+      setArmed(true);
     } catch (err) {
       setMessage({ type: "error", text: err.message });
     } finally {
@@ -89,6 +91,9 @@ export default function RoomUnlock() {
 
           {!room.canUnlock && <p style={{ color: "#666", fontSize: 14 }}>คุณยังไม่มีสิทธิ์ปลดล็อกห้องนี้ กรุณาติดต่อ admin</p>}
         </div>
+      )}
+      {armed && room && (
+        <CountdownModal roomName={room.name} seconds={10} onClose={() => setArmed(false)} />
       )}
     </Layout>
   );
