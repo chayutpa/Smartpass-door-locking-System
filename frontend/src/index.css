@@ -642,7 +642,6 @@ code {
   .sidebar-top { padding: 4px; }
   .sidebar-nav { flex-direction: row; flex: 1; padding: 4px; overflow-x: auto; }
   .sidebar-bottom { padding: 4px; }
-  .sidebar-contact { display: none; } /* ซ่อนบล็อกติดต่อแอดมินตอนจอมือถือ พื้นที่แนวนอนไม่พอ */
   .app-main {
     flex: 1;
     height: auto;
@@ -709,30 +708,6 @@ a.contact-item:hover {
 }
 
 /* ---------- ติดต่อแอดมินใน sidebar ---------- */
-.sidebar-contact {
-  padding: 12px 14px;
-  border-top: 1px solid rgba(255, 255, 255, 0.12);
-}
-
-.sidebar-contact-label {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.45);
-  margin-bottom: 8px;
-}
-
-.sidebar-contact-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 12.5px;
-  text-decoration: none;
-  padding: 3px 0;
-}
-
 .sidebar-contact-item svg {
   width: 14px;
   height: 14px;
@@ -742,12 +717,6 @@ a.contact-item:hover {
 
 a.sidebar-contact-item:hover {
   color: white;
-}
-
-.sidebar-contact-or {
-  color: rgba(255, 255, 255, 0.4);
-  font-size: 11px;
-  margin: 2px 0;
 }
 
 /* ---------- วงแหวนนับถอยหลัง ---------- */

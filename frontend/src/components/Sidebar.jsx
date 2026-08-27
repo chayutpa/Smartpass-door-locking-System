@@ -1,8 +1,10 @@
-import React from "react";
+import React, { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
+import ContactModal from "./ContactModal.jsx";
 
 export default function Sidebar({ collapsed, onToggle, user, onLogout }) {
   const location = useLocation();
+  const [showContact, setShowContact] = useState(false);
 
   const navItem = (to, label, icon) => {
     const active = location.pathname === to;
@@ -36,7 +38,7 @@ export default function Sidebar({ collapsed, onToggle, user, onLogout }) {
             <path d="M5 9.5V21h14V9.5" />
           </svg>
         )}
-        
+
         {navItem(
           "/manual",
           "คู่มือการใช้งาน",
@@ -45,6 +47,20 @@ export default function Sidebar({ collapsed, onToggle, user, onLogout }) {
             <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z" />
           </svg>
         )}
+
+        <button
+          className="sidebar-link"
+          onClick={() => setShowContact(true)}
+          title={collapsed ? "ติดต่อแอดมิน" : undefined}
+          style={{ background: "none", border: "none", width: "100%", cursor: "pointer" }}
+        >
+          <span className="sidebar-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92Z" />
+            </svg>
+          </span>
+          {!collapsed && <span>ติดต่อแอดมิน</span>}
+        </button>
 
         {user?.role === "admin" && (
           <>
@@ -80,43 +96,6 @@ export default function Sidebar({ collapsed, onToggle, user, onLogout }) {
           </>
         )}
       </nav>
-
-      {!collapsed && (
-        <div className="sidebar-contact">
-          <div className="sidebar-contact-label">ติดต่อแอดมิน</div>
-
-          <span className="sidebar-contact-item">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-              <circle cx="12" cy="7" r="4" />
-            </svg>
-            นายชยุตม์ ปฐมกำเหนิด
-          </span>
-          <a href="tel:0851839086" className="sidebar-contact-item">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92Z" />
-            </svg>
-            085-183-9086
-          </a>
-
-          <div className="sidebar-contact-or">หรือ</div>
-
-          <span className="sidebar-contact-item">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-              <circle cx="12" cy="7" r="4" />
-            </svg>
-            ผศ.ดร.อติราช สุขสวัสดิ์
-          </span>
-          <a href="tel:0614515915" className="sidebar-contact-item">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92Z" />
-            </svg>
-            061-451-5915
-          </a>
-        </div>
-      )}
-
       <div className="sidebar-bottom">
         <button className="sidebar-logout" onClick={onLogout} title={collapsed ? "ออกจากระบบ" : undefined}>
           <span className="sidebar-icon">
@@ -129,6 +108,7 @@ export default function Sidebar({ collapsed, onToggle, user, onLogout }) {
           {!collapsed && <span>ออกจากระบบ</span>}
         </button>
       </div>
+      {showContact && <ContactModal onClose={() => setShowContact(false)} />}
     </aside>
   );
 }
