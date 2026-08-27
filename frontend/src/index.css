@@ -628,18 +628,28 @@ code {
 .app-greeting h1 { font-size: 26px; margin: 0; color: #1e293b; }
 
 @media (max-width: 720px) {
-  .app-shell { flex-direction: column; }
+  .app-shell { flex-direction: column; height: 100vh; }
   .sidebar {
     width: 100%;
+    height: auto; /* ยกเลิก height: 100vh จากกฎหลัก ไม่ให้แถบเมนูแนวนอนสูงเท่าทั้งจอ */
+    position: static; /* ยกเลิก sticky ที่ใช้ตอนเป็นแถบข้างแนวตั้งบนจอคอม */
     flex-direction: row;
     align-items: center;
     padding: 8px 12px;
+    flex-shrink: 0; /* กันไม่ให้ถูกบีบเล็กลงเวลาเนื้อหาข้างล่างเยอะ */
   }
   .sidebar.collapsed { width: 100%; }
   .sidebar-top { padding: 4px; }
-  .sidebar-nav { flex-direction: row; flex: 1; padding: 4px; }
+  .sidebar-nav { flex-direction: row; flex: 1; padding: 4px; overflow-x: auto; }
   .sidebar-bottom { padding: 4px; }
-  .app-main { padding: 20px 16px; max-width: 100%; }
+  .sidebar-contact { display: none; } /* ซ่อนบล็อกติดต่อแอดมินตอนจอมือถือ พื้นที่แนวนอนไม่พอ */
+  .app-main {
+    flex: 1;
+    height: auto;
+    overflow-y: auto;
+    padding: 20px 16px;
+    max-width: 100%;
+  }
 }
 
 .sidebar-section-label {
