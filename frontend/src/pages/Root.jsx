@@ -4,6 +4,7 @@ import { api } from "../api.js";
 import { useAuth } from "../App.jsx";
 import Dashboard from "./Dashboard.jsx";
 import LoginForm from "../components/LoginForm.jsx";
+import LoadingCat from "../components/LoadingCat.jsx";
 
 export default function Root() {
   const { user, loading, refresh } = useAuth();
@@ -61,7 +62,7 @@ export default function Root() {
   if (loading || handlingCallback) {
     return (
       <div className="page">
-        <span className="bouncing-cat">🐱</span>
+        <LoadingCat />
       </div>
     );
   }

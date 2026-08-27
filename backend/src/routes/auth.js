@@ -161,8 +161,21 @@ export default async function authRoutes(fastify) {
 
   fastify.post("/api/auth/set-password", { preHandler: fastify.authenticate }, async (request, reply) => {
     const { password } = request.body || {};
-    if (!password || password.length < 8) {
-      return reply.code(400).send({ error: "รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร" });
+
+    if (!password) {
+      return reply.code(400).send({ error: "กรุณากรอกรหัสผ่าน" });
+    }
+    if (password.length < 8) {
+      return reply.code(400).send({ error: "รหัสผ่านต้องมีความยาวอย่างน้อย 8 ตัวอักษร" });
+    }
+    if (!/[A-Z]/.test(password)) {
+      return reply.code(400).send({ error: "รหัสผ่านต้องมีตัวพิมพ์ใหญ่อย่างน้อย 1 ตัว" });
+    }
+    if (!/[0-9]/.test(password)) {
+      return reply.code(400).send({ error: "รหัสผ่านต้องมีตัวเลขอย่างน้อย 1 ตัว" });
+    }
+    if (!/^[A-Za-z0-9]+$/.test(password)) {
+      return reply.code(400).send({ error: "รหัสผ่านห้ามมีอักขระพิเศษ (ใช้ได้แค่ตัวอักษรและตัวเลข)" });
     }
     const user = await User.findById(request.user.sub);
     if (!user) return reply.code(404).send({ error: "ไม่พบผู้ใช้" });

@@ -5,6 +5,7 @@ import { useAuth } from "../App.jsx";
 import LoginForm from "../components/LoginForm.jsx";
 import Layout from "../components/Layout.jsx";
 import CountdownModal from "../components/CountdownModal.jsx";
+import LoadingCat from "../components/LoadingCat.jsx";
 
 export default function RoomUnlock() {
   const { roomId } = useParams();
@@ -49,7 +50,7 @@ export default function RoomUnlock() {
   if (loading) {
     return (
       <div className="page">
-        <span className="bouncing-cat">🐱</span>
+        <LoadingCat />
       </div>
     );
   }
@@ -67,7 +68,7 @@ export default function RoomUnlock() {
 
       {!error && !room && (
         <div className="card" style={{ textAlign: "center" }}>
-          <span className="bouncing-cat">🐱</span>
+          <LoadingCat />
         </div>
       )}
 

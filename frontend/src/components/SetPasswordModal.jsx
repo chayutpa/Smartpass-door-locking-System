@@ -11,7 +11,11 @@ export default function SetPasswordModal({ onDone }) {
   const onSubmit = async (e) => {
     e.preventDefault();
     setError("");
-    if (password.length < 8) return setError("รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร");
+
+    if (password.length < 8) return setError("รหัสผ่านต้องมีความยาวอย่างน้อย 8 ตัวอักษร");
+    if (!/[A-Z]/.test(password)) return setError("รหัสผ่านต้องมีตัวพิมพ์ใหญ่อย่างน้อย 1 ตัว");
+    if (!/[0-9]/.test(password)) return setError("รหัสผ่านต้องมีตัวเลขอย่างน้อย 1 ตัว");
+    if (!/^[A-Za-z0-9]+$/.test(password)) return setError("รหัสผ่านห้ามมีอักขระพิเศษ (ใช้ได้แค่ตัวอักษรและตัวเลข)");
     if (password !== confirm) return setError("รหัสผ่านทั้งสองช่องไม่ตรงกัน");
     setLoading(true);
     try {
@@ -29,6 +33,9 @@ export default function SetPasswordModal({ onDone }) {
       <div className="modal-box">
         <h2>ยินดีต้อนรับ! ตั้งรหัสผ่านของคุณ</h2>
         <p>นี่คือการล็อกอินครั้งแรก ตั้งรหัสผ่านไว้ล็อกอินแบบไม่ผ่าน SSO ในครั้งถัดไปได้ (ไม่บังคับ)</p>
+        <p style={{ fontSize: 12.5, color: "#888", marginTop: -8 }}>
+          รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร มีตัวพิมพ์ใหญ่ 1 ตัวขึ้นไป มีตัวเลข 1 ตัวขึ้นไป และห้ามมีอักขระพิเศษ
+        </p>
         {error && <div className="error">{error}</div>}
         <form onSubmit={onSubmit}>
           <div className="password-field">
