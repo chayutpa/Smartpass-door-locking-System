@@ -47,21 +47,9 @@ export default function Sidebar({ collapsed, onToggle, user, onLogout, onContact
         )}
 
         <button
-          className="sidebar-link"
+          className="sidebar-link sidebar-link-button"
           onClick={onContactClick}
           title={collapsed ? "ติดต่อแอดมิน" : undefined}
-          style={{
-            background: "none",
-            border: "none",
-            width: "100%",
-            cursor: "pointer",
-            boxShadow: "none",
-            color: "inherit",
-            fontWeight: 500,
-            fontSize: 14,
-            textAlign: "left",
-            justifyContent: "flex-start",
-          }}
         >
           <span className="sidebar-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

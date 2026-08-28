@@ -635,6 +635,20 @@ code {
   color: white;
 }
 
+.sidebar-link-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  width: 100%;
+  color: inherit;
+  font-family: inherit;
+  font-weight: 500;
+  font-size: 14px;
+  text-align: left;
+  justify-content: flex-start;
+  box-shadow: none;
+}
+
 .sidebar-icon {
   width: 20px;
   height: 20px;
@@ -693,69 +707,56 @@ code {
 }
 
 @media (max-width: 720px) {
-  .app-shell {
-    flex-direction: column;
-    height: 100vh;
-  }
+  .app-shell { flex-direction: column; height: 100vh; }
 
   .sidebar {
     width: 100%;
     height: auto;
     position: static;
-    flex-direction: row;
-    align-items: center;
-    padding: 6px 8px;
-    flex-shrink: 0;
-  }
-
-  .sidebar.collapsed {
-    width: 100%;
-  }
-
-  .sidebar-top {
-    padding: 4px;
-    flex-shrink: 0;
-  }
-
-  .sidebar-brand {
-    display: none;
-  }
-
-  /* ซ่อนชื่อแอปบนแถบแคบ เหลือแค่ปุ่มพับเมนู */
-
-  .sidebar-nav {
-    flex-direction: row;
-    flex: 1;
-    padding: 0 2px;
-    gap: 2px;
-    justify-content: space-around;
-    overflow-x: auto;
-  }
-
-  /* โหมดมือถือ: แสดงแค่ไอคอน ไม่แสดงข้อความ กันการบีบจนเสียรูป */
-  .sidebar-link,
-  .sidebar-logout {
     flex-direction: column;
+    padding: 0;
     flex-shrink: 0;
-    padding: 8px 6px;
-    gap: 2px;
-    width: auto;
   }
+  .sidebar.collapsed { width: 100%; }
 
-  .sidebar-link span:not(.sidebar-icon),
-  .sidebar-logout span:not(.sidebar-icon) {
-    display: none;
+  /* แถวบนสุด: ปุ่มเมนู + ชื่อโปรเจกต์ + ปุ่ม logout อยู่แถวเดียวกันเสมอ */
+  .sidebar-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
   }
+  .sidebar-brand { display: block; } /* โชว์ชื่อโปรเจกต์เสมอบนมือถือ */
 
-  .sidebar-section-label {
-    display: none;
-  }
-
-  /* หัวข้อ "จัดการระบบ" ไม่มีที่พอบนแถบแนวนอน */
-
+  /* ย้ายปุ่ม logout ขึ้นมาโชว์คู่กับแถวบนสุดบนมือถือ (แทนที่จะอยู่ล่างสุดแบบจอคอม) */
   .sidebar-bottom {
-    padding: 4px;
-    flex-shrink: 0;
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    padding: 0;
+  }
+  .sidebar-logout span:not(.sidebar-icon) { display: none; } /* เหลือแค่ไอคอนพอ ประหยัดที่ */
+  .sidebar-logout { width: auto; padding: 8px; }
+
+  .sidebar { position: relative; } /* ให้ sidebar-bottom แบบ absolute อ้างอิงตำแหน่งจากนี่ */
+
+  /* เมนูอื่นๆ (หน้าหลัก, คู่มือ, ติดต่อ, จัดการระบบ) ซ่อนไว้เป็นค่าเริ่มต้น
+     โชว์เป็น dropdown เต็มความกว้างก็ต่อเมื่อกดปุ่มเมนู (collapsed = true) เท่านั้น */
+  .sidebar-nav {
+    display: none;
+    flex-direction: column;
+    padding: 4px 8px 12px;
+    gap: 2px;
+  }
+  .sidebar.collapsed .sidebar-nav {
+    display: flex;
+  }
+
+  .sidebar-link,
+  .sidebar-link-button {
+    flex-direction: row;
+    width: 100%;
+    justify-content: flex-start;
   }
 
   .app-main {
