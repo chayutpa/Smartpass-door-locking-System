@@ -7,9 +7,9 @@ export default function Sidebar({ collapsed, onToggle, user, onLogout, onContact
   const navItem = (to, label, icon) => {
     const active = location.pathname === to;
     return (
-      <Link key={to} to={to} className={`sidebar-link ${active ? "active" : ""}`} title={collapsed ? label : undefined}>
+      <Link key={to} to={to} className={`sidebar-link ${active ? "active" : ""}`}>
         <span className="sidebar-icon">{icon}</span>
-        {!collapsed && <span>{label}</span>}
+        <span className="sidebar-label">{label}</span>
       </Link>
     );
   };
@@ -24,7 +24,7 @@ export default function Sidebar({ collapsed, onToggle, user, onLogout, onContact
             <line x1="3" y1="18" x2="21" y2="18" />
           </svg>
         </button>
-        {!collapsed && <span className="sidebar-brand">Smart Door Lock</span>}
+        <span className="sidebar-brand">Smart Door Lock</span>
       </div>
 
       <nav className="sidebar-nav">
@@ -46,22 +46,18 @@ export default function Sidebar({ collapsed, onToggle, user, onLogout, onContact
           </svg>
         )}
 
-        <button
-          className="sidebar-link sidebar-link-button"
-          onClick={onContactClick}
-          title={collapsed ? "ติดต่อแอดมิน" : undefined}
-        >
+        <button className="sidebar-link sidebar-link-button" onClick={onContactClick}>
           <span className="sidebar-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92Z" />
             </svg>
           </span>
-          {!collapsed && <span>ติดต่อแอดมิน</span>}
+          <span className="sidebar-label">ติดต่อแอดมิน</span>
         </button>
 
         {user?.role === "admin" && (
           <>
-            {!collapsed && <div className="sidebar-section-label">จัดการระบบ</div>}
+            <div className="sidebar-section-label">จัดการระบบ</div>
             {navItem(
               "/admin/rooms",
               "จัดการห้อง",
@@ -93,8 +89,9 @@ export default function Sidebar({ collapsed, onToggle, user, onLogout, onContact
           </>
         )}
       </nav>
+
       <div className="sidebar-bottom">
-        <button className="sidebar-logout" onClick={onLogout} title={collapsed ? "ออกจากระบบ" : undefined}>
+        <button className="sidebar-logout" onClick={onLogout}>
           <span className="sidebar-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
@@ -102,7 +99,7 @@ export default function Sidebar({ collapsed, onToggle, user, onLogout, onContact
               <path d="M21 12H9" />
             </svg>
           </span>
-          {!collapsed && <span>ออกจากระบบ</span>}
+          <span className="sidebar-label">ออกจากระบบ</span>
         </button>
       </div>
     </aside>

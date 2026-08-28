@@ -635,6 +635,12 @@ code {
   color: white;
 }
 
+/* จอคอม: ตอน sidebar พับ (icon-only) ให้ซ่อน label ด้วย CSS แทนที่จะไม่ render เลยแบบเดิม */
+.sidebar.collapsed .sidebar-brand,
+.sidebar.collapsed .sidebar-label {
+  display: none;
+}
+
 .sidebar-link-button {
   background: none;
   border: none;
@@ -707,73 +713,44 @@ code {
 }
 
 @media (max-width: 720px) {
-  .app-shell {
-    flex-direction: column;
-    height: 100vh;
-  }
+  .app-shell { flex-direction: column; height: 100vh; }
 
   .sidebar {
     width: 100%;
     height: auto;
-    position: static;
+    position: relative;
     flex-direction: column;
     padding: 0;
     flex-shrink: 0;
   }
+  .sidebar.collapsed { width: 100%; }
 
-  .sidebar.collapsed {
-    width: 100%;
-  }
-
-  /* แถวบนสุด: ปุ่มเมนู + ชื่อโปรเจกต์ + ปุ่ม logout อยู่แถวเดียวกันเสมอ */
   .sidebar-top {
     display: flex;
     align-items: center;
     justify-content: flex-start;
     gap: 12px;
     padding: 10px 56px 10px 12px;
-    /* เผื่อที่ด้านขวาให้พ้นปุ่ม logout ที่ลอยอยู่ */
   }
-
   .sidebar-brand {
-    display: block;
+    display: block !important; /* โชว์เสมอบนมือถือ ไม่ขึ้นกับ collapsed */
   }
 
-  /* โชว์ชื่อโปรเจกต์เสมอบนมือถือ */
-
-  /* ย้ายปุ่ม logout ขึ้นมาโชว์คู่กับแถวบนสุดบนมือถือ (แทนที่จะอยู่ล่างสุดแบบจอคอม) */
   .sidebar-bottom {
     position: absolute;
     top: 8px;
     right: 8px;
     padding: 0;
   }
+  .sidebar-logout .sidebar-label { display: none; } /* เหลือแค่ไอคอน logout มุมขวาบน */
+  .sidebar-logout { width: auto; padding: 8px; }
 
-  .sidebar-logout span:not(.sidebar-icon) {
-    display: none;
-  }
-
-  /* เหลือแค่ไอคอนพอ ประหยัดที่ */
-  .sidebar-logout {
-    width: auto;
-    padding: 8px;
-  }
-
-  .sidebar {
-    position: relative;
-  }
-
-  /* ให้ sidebar-bottom แบบ absolute อ้างอิงตำแหน่งจากนี่ */
-
-  /* เมนูอื่นๆ (หน้าหลัก, คู่มือ, ติดต่อ, จัดการระบบ) ซ่อนไว้เป็นค่าเริ่มต้น
-     โชว์เป็น dropdown เต็มความกว้างก็ต่อเมื่อกดปุ่มเมนู (collapsed = true) เท่านั้น */
   .sidebar-nav {
     display: none;
     flex-direction: column;
     padding: 4px 8px 12px;
     gap: 2px;
   }
-
   .sidebar.collapsed .sidebar-nav {
     display: flex;
   }
@@ -785,7 +762,8 @@ code {
     justify-content: flex-start;
   }
 
-  .sidebar.collapsed .sidebar-nav span:not(.sidebar-icon) {
+  /* dropdown เปิดอยู่ (collapsed=true บนมือถือ) -> ต้องโชว์ label เสมอ ไม่ว่า desktop rule จะซ่อนไว้แค่ไหน */
+  .sidebar.collapsed .sidebar-nav .sidebar-label {
     display: inline !important;
   }
 
