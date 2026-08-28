@@ -707,7 +707,10 @@ code {
 }
 
 @media (max-width: 720px) {
-  .app-shell { flex-direction: column; height: 100vh; }
+  .app-shell {
+    flex-direction: column;
+    height: 100vh;
+  }
 
   .sidebar {
     width: 100%;
@@ -717,16 +720,26 @@ code {
     padding: 0;
     flex-shrink: 0;
   }
-  .sidebar.collapsed { width: 100%; }
+
+  .sidebar.collapsed {
+    width: 100%;
+  }
 
   /* แถวบนสุด: ปุ่มเมนู + ชื่อโปรเจกต์ + ปุ่ม logout อยู่แถวเดียวกันเสมอ */
   .sidebar-top {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    padding: 10px 12px;
+    justify-content: flex-start;
+    gap: 12px;
+    padding: 10px 56px 10px 12px;
+    /* เผื่อที่ด้านขวาให้พ้นปุ่ม logout ที่ลอยอยู่ */
   }
-  .sidebar-brand { display: block; } /* โชว์ชื่อโปรเจกต์เสมอบนมือถือ */
+
+  .sidebar-brand {
+    display: block;
+  }
+
+  /* โชว์ชื่อโปรเจกต์เสมอบนมือถือ */
 
   /* ย้ายปุ่ม logout ขึ้นมาโชว์คู่กับแถวบนสุดบนมือถือ (แทนที่จะอยู่ล่างสุดแบบจอคอม) */
   .sidebar-bottom {
@@ -735,10 +748,22 @@ code {
     right: 8px;
     padding: 0;
   }
-  .sidebar-logout span:not(.sidebar-icon) { display: none; } /* เหลือแค่ไอคอนพอ ประหยัดที่ */
-  .sidebar-logout { width: auto; padding: 8px; }
 
-  .sidebar { position: relative; } /* ให้ sidebar-bottom แบบ absolute อ้างอิงตำแหน่งจากนี่ */
+  .sidebar-logout span:not(.sidebar-icon) {
+    display: none;
+  }
+
+  /* เหลือแค่ไอคอนพอ ประหยัดที่ */
+  .sidebar-logout {
+    width: auto;
+    padding: 8px;
+  }
+
+  .sidebar {
+    position: relative;
+  }
+
+  /* ให้ sidebar-bottom แบบ absolute อ้างอิงตำแหน่งจากนี่ */
 
   /* เมนูอื่นๆ (หน้าหลัก, คู่มือ, ติดต่อ, จัดการระบบ) ซ่อนไว้เป็นค่าเริ่มต้น
      โชว์เป็น dropdown เต็มความกว้างก็ต่อเมื่อกดปุ่มเมนู (collapsed = true) เท่านั้น */
@@ -748,6 +773,7 @@ code {
     padding: 4px 8px 12px;
     gap: 2px;
   }
+
   .sidebar.collapsed .sidebar-nav {
     display: flex;
   }
@@ -757,6 +783,10 @@ code {
     flex-direction: row;
     width: 100%;
     justify-content: flex-start;
+  }
+
+  .sidebar.collapsed .sidebar-nav span:not(.sidebar-icon) {
+    display: inline !important;
   }
 
   .app-main {
