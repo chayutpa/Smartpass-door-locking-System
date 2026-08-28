@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { api } from "../api.js";
 import { useAuth } from "../App.jsx";
 import Sidebar from "./Sidebar.jsx";
+import ContactModal from "./ContactModal.jsx";
 
 const GREETING_TEMPLATES = [
   "ยินดีต้อนรับกลับ",
@@ -21,9 +22,10 @@ function getGreeting() {
 
 export default function Layout({ children, title, subtitle }) {
   const [collapsed, setCollapsed] = useState(false);
+  const [showContact, setShowContact] = useState(false);
   const { user, setUser } = useAuth();
   const navigate = useNavigate();
-  const [greeting] = useState(getGreeting); // สุ่มครั้งเดียวตอนโหลดหน้า ไม่สุ่มซ้ำระหว่างที่อยู่หน้านี้
+  const [greeting] = useState(getGreeting);
 
   const onLogout = async () => {
     await api.logout();
@@ -35,7 +37,13 @@ export default function Layout({ children, title, subtitle }) {
 
   return (
     <div className="app-shell">
-      <Sidebar collapsed={collapsed} onToggle={() => setCollapsed((c) => !c)} user={user} onLogout={onLogout} />
+      <Sidebar
+        collapsed={collapsed}
+        onToggle={() => setCollapsed((c) => !c)}
+        user={user}
+        onLogout={onLogout}
+        onContactClick={() => setShowContact(true)}
+      />
       <main className="app-main">
         <div style={{ maxWidth: 640, margin: "0 auto" }}>
           <div className="app-greeting">
@@ -45,6 +53,7 @@ export default function Layout({ children, title, subtitle }) {
           {children}
         </div>
       </main>
+      {showContact && <ContactModal onClose={() => setShowContact(false)} />}
     </div>
   );
 }
