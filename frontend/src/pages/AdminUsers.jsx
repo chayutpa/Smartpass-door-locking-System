@@ -10,7 +10,7 @@ export default function AdminUsers() {
   const [search, setSearch] = useState("");
   const [expandedUserId, setExpandedUserId] = useState(null);
   const [confirmDeleteUser, setConfirmDeleteUser] = useState(null);
-  const [confirmPromoteUser, setConfirmPromoteUser] = useState(null); // user ที่กำลังจะเปลี่ยนเป็น admin
+  const [confirmRoleChange, setConfirmRoleChange] = useState(null); // { user, targetRole }
 
   const load = async () => {
     try {
@@ -31,20 +31,14 @@ export default function AdminUsers() {
     load();
   };
 
-  const toggleRole = async (user) => {
-    if (user.role === "admin") {
-      // ลดสิทธิ์จาก admin เป็น user ทำงานทันที ไม่ต้องยืนยันซ้ำ
-      await api.updateUserRole(user._id, "user");
-      load();
-      return;
-    }
-    // เพิ่มสิทธิ์เป็น admin ต้องยืนยันอีกชั้นก่อนเสมอ
-    setConfirmPromoteUser(user);
+  const toggleRole = (user) => {
+    const targetRole = user.role === "admin" ? "user" : "admin";
+    setConfirmRoleChange({ user, targetRole });
   };
 
-  const confirmPromote = async () => {
-    await api.updateUserRole(confirmPromoteUser._id, "admin");
-    setConfirmPromoteUser(null);
+  const confirmRoleChangeAction = async () => {
+    await api.updateUserRole(confirmRoleChange.user._id, confirmRoleChange.targetRole);
+    setConfirmRoleChange(null);
     load();
   };
 
@@ -178,14 +172,22 @@ export default function AdminUsers() {
           onCancel={() => setConfirmDeleteUser(null)}
         />
       )}
-      {confirmPromoteUser && (
+      {confirmRoleChange && (
         <ConfirmModal
-          title={`ยืนยันที่จะเปลี่ยนสถานะ "${confirmPromoteUser.displayName || confirmPromoteUser.ssoId}" เป็น Admin หรือไม่`}
-          message={`หากเปลี่ยนแล้ว "${confirmPromoteUser.displayName || confirmPromoteUser.ssoId}" จะมีสิทธิ์ในการเข้าถึงการจัดการระบบทุกอย่าง`}
+          title={
+            confirmRoleChange.targetRole === "admin"
+              ? `ยืนยันที่จะเปลี่ยนสถานะ "${confirmRoleChange.user.displayName || confirmRoleChange.user.ssoId}" เป็น Admin หรือไม่`
+              : `ยืนยันที่จะถอดสถานะ Admin ของ "${confirmRoleChange.user.displayName || confirmRoleChange.user.ssoId}" หรือไม่`
+          }
+          message={
+            confirmRoleChange.targetRole === "admin"
+              ? `หากเปลี่ยนแล้ว "${confirmRoleChange.user.displayName || confirmRoleChange.user.ssoId}" จะมีสิทธิ์ในการเข้าถึงการจัดการระบบทุกอย่าง`
+              : `หากถอดสถานะแล้ว "${confirmRoleChange.user.displayName || confirmRoleChange.user.ssoId}" จะไม่สามารถเข้าถึงหน้าจัดการระบบได้อีก และจะเหลือสิทธิ์เท่าผู้ใช้งานทั่วไป`
+          }
           confirmLabel="ยืนยัน"
           danger
-          onConfirm={confirmPromote}
-          onCancel={() => setConfirmPromoteUser(null)}
+          onConfirm={confirmRoleChangeAction}
+          onCancel={() => setConfirmRoleChange(null)}
         />
       )}
     </Layout>
