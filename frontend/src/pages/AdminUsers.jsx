@@ -10,6 +10,7 @@ export default function AdminUsers() {
   const [search, setSearch] = useState("");
   const [expandedUserId, setExpandedUserId] = useState(null);
   const [confirmDeleteUser, setConfirmDeleteUser] = useState(null);
+  const [confirmPromoteUser, setConfirmPromoteUser] = useState(null); // user ที่กำลังจะเปลี่ยนเป็น admin
 
   const load = async () => {
     try {
@@ -30,8 +31,20 @@ export default function AdminUsers() {
     load();
   };
 
-  const toggleRole = async (id, current) => {
-    await api.updateUserRole(id, current === "admin" ? "user" : "admin");
+  const toggleRole = async (user) => {
+    if (user.role === "admin") {
+      // ลดสิทธิ์จาก admin เป็น user ทำงานทันที ไม่ต้องยืนยันซ้ำ
+      await api.updateUserRole(user._id, "user");
+      load();
+      return;
+    }
+    // เพิ่มสิทธิ์เป็น admin ต้องยืนยันอีกชั้นก่อนเสมอ
+    setConfirmPromoteUser(user);
+  };
+
+  const confirmPromote = async () => {
+    await api.updateUserRole(confirmPromoteUser._id, "admin");
+    setConfirmPromoteUser(null);
     load();
   };
 
@@ -108,7 +121,7 @@ export default function AdminUsers() {
                         <span
                           className={`badge ${u.role === "admin" ? "badge-yes" : "badge-no"}`}
                           style={{ cursor: "pointer" }}
-                          onClick={() => toggleRole(u._id, u.role)}
+                          onClick={() => toggleRole(u)}
                           title="คลิกเพื่อสลับบทบาท"
                         >
                           {u.role}
@@ -163,6 +176,16 @@ export default function AdminUsers() {
           danger
           onConfirm={confirmDelete}
           onCancel={() => setConfirmDeleteUser(null)}
+        />
+      )}
+      {confirmPromoteUser && (
+        <ConfirmModal
+          title={`ยืนยันที่จะเปลี่ยนสถานะ "${confirmPromoteUser.displayName || confirmPromoteUser.ssoId}" เป็น Admin หรือไม่`}
+          message={`หากเปลี่ยนแล้ว "${confirmPromoteUser.displayName || confirmPromoteUser.ssoId}" จะมีสิทธิ์ในการเข้าถึงการจัดการระบบทุกอย่าง`}
+          confirmLabel="ยืนยัน"
+          danger
+          onConfirm={confirmPromote}
+          onCancel={() => setConfirmPromoteUser(null)}
         />
       )}
     </Layout>
