@@ -1,0 +1,620 @@
+/*
+  ESP32 Smart Door Lock (พร้อมจอ LCD I2C แสดงสถานะ)
+  -----------------------------------------------------------
+  ต่อ WiFi แล้วเปิด WebSocket ค้างไปยัง backend (Fastify) ที่ path /ws/esp32
+  เมื่อได้รับคำสั่ง {"type":"unlock"} จะสั่ง relay เพื่อปลดกลอนประตู แล้วส่ง ack กลับ
+  จอ LCD I2C 16x2 แสดงสถานะ: กำลังต่อ WiFi -> กำลังต่อ Server -> พร้อมใช้งาน -> ปลดล็อก+นับถอยหลัง
+
+  ไลบรารีที่ต้องติดตั้งผ่าน Arduino Library Manager:
+    - WebSockets by Markus Sattler (arduinoWebSockets)
+    - ArduinoJson by Benoit Blanchon
+    - LiquidCrystal I2C by Frank de Brabander (ค้นหาคำว่า "LiquidCrystal I2C")
+
+  บอร์ด: ESP32 Dev Module (ติดตั้ง ESP32 board package ใน Boards Manager ก่อน)
+
+  การต่อจอ LCD I2C (โมดูล PCF8574 backpack):
+    - VCC -> 5V (หรือ 3.3V ถ้าจอรุ่นรองรับ เช็ค spec จอที่ใช้)
+    - GND -> GND
+    - SDA -> GPIO21 (ขา SDA เริ่มต้นของ ESP32)
+    - SCL -> GPIO22 (ขา SCL เริ่มต้นของ ESP32)
+    หา address ของจอด้วยการรัน I2C Scanner sketch ก่อน ถ้าไม่ใช่ 0x27 ให้แก้ค่า LCD_ADDR ด้านล่าง
+
+  ปุ่มกดจริงที่หน้าห้อง:
+    - ขาหนึ่งต่อ GND อีกขาต่อ GPIO27 (INPUT_PULLUP)
+    - ตอนรออนุมัติปลดล็อก (armed): กด 1 ครั้ง = ปลดล็อกจริง
+    - ตอนออฟไลน์ (ไม่มีเน็ต): กด 1 ครั้ง = เข้า AP mode
+    - ตอนออนไลน์ปกติ: กด 2 ครั้งติดกัน = บังคับเข้า AP mode
+    - ตอนอยู่ใน AP mode อยู่แล้ว: กด 1 ครั้ง = ออกจาก AP mode ทันที
+*/
+
+#include <WiFi.h>
+#include <WebSocketsClient.h>
+#include <ArduinoJson.h>
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
+#include <WebServer.h>
+#include <Preferences.h>
+#include <DNSServer.h>
+
+// ---------- ตั้งค่าตรงนี้ ----------
+const char* WIFI_SSID     = ""; //ชื่อ WiFi ของห้องเรียน (เช่น "KKC-RMUTI-Student") 
+const char* WIFI_PASSWORD = ""; //รหัสผ่าน WiFi ของห้องเรียน (เช่น "12345678")
+
+const char* WS_HOST     = "api-smart-door.chayutpa.me";
+const uint16_t WS_PORT  = 443;
+const char* WS_PATH     = "/ws/esp32?secret=YOUR_SECRET"; // ใส่ secret ที่ตรงกับที่ได้มาจากระบบเพิ่มห้องเรียน
+
+const char* ROOM_LABEL = "Room YourRoom"; // ชื่อห้องเรียน/ห้องปฏิบัติการที่จะแสดงบนจอ LCD และหน้าเว็บ AP mode
+
+const bool USE_TLS = true;
+
+// ---------- โหมดฮอตสปอตสำรอง (ใช้เมื่อไม่มีอินเทอร์เน็ต) ----------
+const char* OFFLINE_AP_SSID = "DoorLock-Offline"; // ไม่ตั้งรหัสผ่าน (Open Network) ให้ทุกคนในห้องเรียนเชื่อมต่อได้
+
+String offlineCodes[10] = {"", "", "", "", "", "", "", "", "", ""};
+bool codeUsed[10] = {false, false, false, false, false, false, false, false, false, false};
+
+WebServer offlineServer(80);
+DNSServer dnsServer;
+const byte DNS_PORT = 53;
+Preferences preferences;
+bool apModeActive = false;
+int failedAttempts = 0;
+unsigned long lockoutUntil = 0;
+unsigned long currentLockoutDurationMs = 30000;
+const unsigned long MAX_LOCKOUT_MS = 30UL * 60UL * 1000UL;
+const int ATTEMPTS_BEFORE_LOCKOUT = 5;
+
+// ---------- ปุ่มกดจริงที่หน้าห้อง ----------
+const int BUTTON_PIN = 27;
+const unsigned long ARM_WINDOW_MS = 10000; // มีเวลากดปุ่มกี่ ms หลังได้รับคำสั่ง "arm" จากเว็บ
+const unsigned long RESET_HOLD_MS = 5000; // กดปุ่มค้างกี่ ms ถึงจะรีสตาร์ทบอร์ด
+
+bool doorArmed = false;
+unsigned long armedUntilMillis = 0;
+String armedRequestId = "";
+int lastShownArmSecond = -1;
+
+bool buttonPrevState = HIGH; // เก็บสถานะปุ่มรอบก่อน (INPUT_PULLUP: HIGH=ไม่ได้กด, LOW=กดอยู่) กันนับซ้ำตอนกดค้าง
+unsigned long buttonPressStartMillis = 0; // เวลาที่เริ่มกดปุ่มลง ใช้คำนวณว่ากดค้างมานานแค่ไหนแล้ว
+bool resetTriggered = false; // กันสั่ง restart ซ้ำหลายรอบถ้า loop() วนมาเจอเงื่อนไขซ้ำก่อนบอร์ดจะรีสตาร์ทจริง
+unsigned long lastButtonPressMillis = 0;
+int pendingPressCount = 0;
+
+// ---------- ขา GPIO ที่ต่อกับ relay ----------
+const int RELAY_PIN = 14;
+const bool RELAY_ACTIVE_LOW = true;
+const int UNLOCK_DURATION_SEC = 5;
+
+// ---------- ตั้งค่าจอ LCD I2C ----------
+const uint8_t LCD_ADDR = 0x27;
+const uint8_t LCD_COLS = 16;
+const uint8_t LCD_ROWS = 2;
+LiquidCrystal_I2C lcd(LCD_ADDR, LCD_COLS, LCD_ROWS);
+
+WebSocketsClient webSocket;
+bool wsConnected = false;
+
+String lcdLine1Cache = "";
+String lcdLine2Cache = "";
+
+void lcdShow(const String& line1, const String& line2 = "") {
+  if (line1 == lcdLine1Cache && line2 == lcdLine2Cache) return;
+  lcdLine1Cache = line1;
+  lcdLine2Cache = line2;
+
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print(line1);
+  lcd.setCursor(0, 1);
+  lcd.print(line2);
+}
+
+void loadOfflineCodesFromStorage() {
+  preferences.begin("doorlock", true);
+  for (int i = 0; i < 10; i++) {
+    offlineCodes[i] = preferences.getString(("code" + String(i)).c_str(), "");
+    codeUsed[i] = preferences.getBool(("used" + String(i)).c_str(), false);
+  }
+  preferences.end();
+}
+
+void saveOfflineCode(int index, const String& code) {
+  offlineCodes[index] = code;
+  codeUsed[index] = false;
+  preferences.begin("doorlock", false);
+  preferences.putString(("code" + String(index)).c_str(), code);
+  preferences.putBool(("used" + String(index)).c_str(), false);
+  preferences.end();
+}
+
+void markCodeUsedLocally(int index) {
+  codeUsed[index] = true;
+  preferences.begin("doorlock", false);
+  preferences.putBool(("used" + String(index)).c_str(), true);
+  preferences.end();
+}
+
+void reportUsedCodesToBackend() {
+  StaticJsonDocument<256> doc;
+  doc["type"] = "codes_used_report";
+  JsonArray arr = doc.createNestedArray("usedIndices");
+  for (int i = 0; i < 10; i++) {
+    if (codeUsed[i]) arr.add(i);
+  }
+  String out;
+  serializeJson(doc, out);
+  Serial.println("ส่งรายงานรหัสที่ใช้แล้ว: " + out);
+  webSocket.sendTXT(out);
+}
+
+void relayOff() {
+  digitalWrite(RELAY_PIN, RELAY_ACTIVE_LOW ? HIGH : LOW);
+}
+
+void relayOn() {
+  digitalWrite(RELAY_PIN, RELAY_ACTIVE_LOW ? LOW : HIGH);
+}
+
+void showReadyStatus() {
+  if (apModeActive) return; // อยู่ AP mode อยู่แล้ว ไม่ต้องเขียนทับจอ "Connect to WiFi:" ด้วย event จาก WS reconnect เบื้องหลัง
+
+  if (WiFi.status() != WL_CONNECTED) {
+    lcdShow("No Internet", "Press 1x=AP");
+  } else if (wsConnected) {
+    lcdShow(ROOM_LABEL, "Ready");
+  } else {
+    lcdShow("Server offline", "Press 1x=AP");
+  }
+}
+
+void confirmUnlock() {
+  doorArmed = false;
+  lastShownArmSecond = -1;
+  String confirmedRequestId = armedRequestId;
+
+  Serial.println("Physical button pressed, unlocking...");
+  relayOn();
+  for (int remaining = UNLOCK_DURATION_SEC; remaining > 0; remaining--) {
+    lcdShow("Door Unlocked!", "Lock in " + String(remaining) + "s");
+    unsigned long stepStart = millis();
+    while (millis() - stepStart < 1000) {
+      webSocket.loop();
+      delay(10);
+    }
+  }
+  relayOff();
+  Serial.println("Door relay reset (locked again)");
+  showReadyStatus();
+
+  StaticJsonDocument<128> doc;
+  doc["type"] = "unlock_confirmed";
+  doc["requestId"] = confirmedRequestId;
+  String out;
+  serializeJson(doc, out);
+  webSocket.sendTXT(out);
+}
+
+void checkArmExpiry() {
+  if (!doorArmed) return;
+
+  long msLeft = (long)armedUntilMillis - (long)millis();
+  if (msLeft <= 0) {
+    doorArmed = false;
+    lastShownArmSecond = -1;
+    showReadyStatus();
+
+    StaticJsonDocument<128> doc;
+    doc["type"] = "arm_expired";
+    doc["requestId"] = armedRequestId;
+    String out;
+    serializeJson(doc, out);
+    webSocket.sendTXT(out);
+    return;
+  }
+
+  int secondsLeft = (msLeft + 999) / 1000;
+  if (secondsLeft != lastShownArmSecond) {
+    lastShownArmSecond = secondsLeft;
+    lcdShow("Ready to unlock!", "Press in " + String(secondsLeft) + "s");
+  }
+}
+
+void startOfflineAP(); // forward declaration (นิยามอยู่ด้านล่าง แต่ถูกเรียกใช้ก่อนหน้านี้)
+void stopOfflineAP();
+
+// เช็คว่าปุ่มถูกกดค้างมาครบ 5 วิหรือยัง เรียกทุกรอบ loop() ไม่ว่าจะอยู่โหมดไหน/สถานะไหนก็ตาม
+// ทำงานได้เสมอไม่ขึ้นกับ doorArmed/apModeActive เพราะปุ่มรีเซ็ตต้องใช้ได้ทุกสถานการณ์รวมถึงตอนระบบค้าง
+void checkResetHold() {
+  bool current = digitalRead(BUTTON_PIN);
+
+  if (current == LOW) { // ปุ่มกำลังถูกกดอยู่ (active-low)
+    if (buttonPressStartMillis == 0) {
+      buttonPressStartMillis = millis(); // เพิ่งเริ่มกด บันทึกเวลาเริ่มไว้
+    } else if (!resetTriggered && millis() - buttonPressStartMillis >= RESET_HOLD_MS) {
+      resetTriggered = true;
+      Serial.println("กดปุ่มค้างครบ 5 วินาที กำลังรีสตาร์ทบอร์ด...");
+      lcdShow("Resetting...", "Please wait");
+      delay(300); // เผื่อเวลาให้ Serial/LCD พิมพ์ทันก่อนบอร์ดดับ
+      ESP.restart();
+    }
+  } else {
+    buttonPressStartMillis = 0; // ปล่อยปุ่มแล้ว รีเซ็ตตัวจับเวลา (ไม่ครบ 5 วิ ถือว่ายกเลิก)
+  }
+}
+
+void checkButton() {
+  bool current = digitalRead(BUTTON_PIN);
+  bool pressedEdge = (buttonPrevState == HIGH && current == LOW); // จับจังหวะกดลงครั้งเดียว กันนับซ้ำตอนกดค้าง
+  buttonPrevState = current;
+
+  if (!pressedEdge) return;
+
+  if (doorArmed) {
+    confirmUnlock();
+    return;
+  }
+
+  // ไม่ได้ armed อยู่ -> กด 1 ครั้งเข้า AP mode ได้เฉพาะตอนออฟไลน์/ต่อ backend ไม่ได้เท่านั้น
+  if (!apModeActive && !wsConnected) {
+    startOfflineAP();
+  }
+}
+
+// เช็คปุ่มระหว่างอยู่ใน AP mode อยู่แล้ว — กด 1 ครั้งออกจาก AP mode ได้ทันที ไม่ต้องรอเน็ตกลับมาเอง
+void checkApExitButton() {
+  bool current = digitalRead(BUTTON_PIN);
+  bool pressedEdge = (buttonPrevState == HIGH && current == LOW);
+  buttonPrevState = current;
+
+  if (pressedEdge) {
+    Serial.println("กดปุ่มออกจาก AP mode ด้วยตนเอง");
+    stopOfflineAP();
+  }
+}
+
+// สร้างหน้าเว็บ HTML ธีมเดียวกับเว็บหลัก (โทนน้ำเงิน gradient) ให้ทุกหน้าใน AP mode เรียกใช้ร่วมกัน
+String renderPage(const String& bodyHtml) {
+  String html = "<!DOCTYPE html><html><head><meta charset='utf-8'>"
+                "<meta name='viewport' content='width=device-width, initial-scale=1'>"
+                "<title>" + String(ROOM_LABEL) + "</title>"
+                "<style>"
+                "*{box-sizing:border-box;margin:0;padding:0;}"
+                "body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;"
+                "background:linear-gradient(180deg,#eef1f6 0%,#e6ebf7 100%);"
+                "min-height:100vh;display:flex;flex-direction:column;"
+                "align-items:center;justify-content:center;padding:24px;}"
+                ".card{background:#fff;border-radius:20px;padding:32px 28px;max-width:340px;width:100%;"
+                "box-shadow:0 20px 50px rgba(37,99,235,0.18);text-align:center;}"
+                ".card h2{font-size:20px;margin-bottom:8px;color:#1a1a1a;}"
+                ".card p{color:#667;font-size:14px;margin-bottom:20px;line-height:1.5;}"
+                "input{width:100%;padding:14px;border:1.5px solid #dde2ea;border-radius:12px;"
+                "font-size:22px;text-align:center;letter-spacing:4px;margin-bottom:16px;}"
+                "input:focus{outline:none;border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,0.12);}"
+                "button{width:100%;padding:14px;border:none;border-radius:12px;"
+                "background:linear-gradient(135deg,#2563eb 0%,#1d4ed8 100%);color:#fff;"
+                "font-size:16px;font-weight:600;cursor:pointer;box-shadow:0 4px 14px rgba(37,99,235,0.28);}"
+                ".msg-error{color:#dc2626;background:#fef2f2;border:1px solid #fecaca;"
+                "padding:10px 14px;border-radius:10px;font-size:14px;margin-bottom:16px;}"
+                ".msg-success{color:#15803d;background:#f0fdf4;border:1px solid #bbf7d0;"
+                "padding:10px 14px;border-radius:10px;font-size:14px;margin-bottom:16px;}"
+                "a{color:#2563eb;text-decoration:none;font-weight:600;font-size:14px;}"
+                ".badge{display:inline-block;background:#eef2ff;color:#1d4ed8;font-size:12px;"
+                "font-weight:700;padding:4px 12px;border-radius:999px;margin-bottom:16px;}"
+                ".contact-footer{max-width:340px;text-align:center;margin-top:20px;"
+                "color:#a8b0c0;font-size:11.5px;line-height:1.8;}"
+                ".contact-footer a{color:#a8b0c0;font-weight:400;font-size:11.5px;text-decoration:underline;}"
+                ".contact-footer .row{display:block;}"
+                "</style></head><body>"
+                "<div class='card'>" + bodyHtml + "</div>"
+                "<div class='contact-footer'>"
+                "<div class='row'>"
+                "<a href='https://www.kkc.rmuti.ac.th/' target='_blank'>มหาวิทยาลัยเทคโนโลยีราชมงคลอีสาน วิทยาเขตขอนแก่น</a>"
+                " · <span>วิศวกรรมคอมพิวเตอร์</span>"
+                "</div>"
+                "<div class='row'>"
+                "<span>นายชยุตม์ ปฐมกำเหนิด</span> "
+                "<a href='tel:0851839086'>085-183-9086</a> หรือ "
+                "<span>ผศ.ดร.อติราช สุขสวัสดิ์</span> "
+                "<a href='tel:0614515915'>061-451-5915</a>"
+                "</div>"
+                "</div>"
+                "</body></html>";
+  return html;
+}
+void handleOfflineRoot() {
+  String body = "<span class='badge'>" + String(ROOM_LABEL) + "</span>"
+                "<h2>ปลดล็อกแบบออฟไลน์</h2>"
+                "<p>ไม่พบอินเทอร์เน็ต กรุณากรอกรหัส 6 หลักที่ได้รับจาก admin</p>";
+
+  if (millis() < lockoutUntil) {
+    unsigned long secondsLeft = (lockoutUntil - millis()) / 1000 + 1;
+    body += "<div class='msg-error'>กรอกรหัสผิดหลายครั้งเกินไป กรุณารออีก " + String(secondsLeft) + " วินาที</div>";
+  } else {
+    body += "<form action='/unlock' method='POST'>"
+            "<input type='text' name='code' maxlength='6' placeholder='••••••'>"
+            "<button type='submit'>ปลดล็อก</button>"
+            "</form>";
+  }
+
+  offlineServer.send(200, "text/html; charset=utf-8", renderPage(body));
+}
+
+void handleCaptivePortalRedirect() {
+  offlineServer.sendHeader("Location", "http://192.168.4.1/", true);
+  offlineServer.send(302, "text/plain", "");
+}
+
+void handleOfflineUnlock() {
+  if (millis() < lockoutUntil) {
+    unsigned long secondsLeft = (lockoutUntil - millis()) / 1000 + 1;
+    String body = "<h2>ลองใหม่อีกครั้งใน " + String(secondsLeft) + " วินาที</h2>"
+                  "<div class='msg-error'>กรอกรหัสผิดหลายครั้งเกินไป</div>"
+                  "<a href='/'>← ย้อนกลับ</a>";
+    offlineServer.send(200, "text/html; charset=utf-8", renderPage(body));
+    return;
+  }
+
+  String code = offlineServer.arg("code");
+  int matchIndex = -1;
+  for (int i = 0; i < 10; i++) {
+    if (offlineCodes[i].length() > 0 && code == offlineCodes[i]) { matchIndex = i; break; }
+  }
+
+  bool isValidUnusedCode = (matchIndex != -1 && !codeUsed[matchIndex]);
+
+  if (!isValidUnusedCode) {
+    failedAttempts++;
+    Serial.println("กรอกรหัสผิด ครั้งที่ " + String(failedAttempts));
+
+    if (failedAttempts >= ATTEMPTS_BEFORE_LOCKOUT) {
+      lockoutUntil = millis() + currentLockoutDurationMs;
+      Serial.println("Lock การกรอกรหัส " + String(currentLockoutDurationMs / 1000) + " วินาที");
+      failedAttempts = 0;
+      currentLockoutDurationMs = min(currentLockoutDurationMs * 2, MAX_LOCKOUT_MS);
+    }
+
+    String message = (matchIndex != -1 && codeUsed[matchIndex]) ? "รหัสนี้ถูกใช้ไปแล้ว" : "รหัสไม่ถูกต้อง";
+    String body = "<h2>ไม่สำเร็จ</h2><div class='msg-error'>" + message + "</div><a href='/'>← ย้อนกลับ</a>";
+    offlineServer.send(200, "text/html; charset=utf-8", renderPage(body));
+    return;
+  }
+
+  failedAttempts = 0;
+  currentLockoutDurationMs = 30000;
+
+  markCodeUsedLocally(matchIndex);
+
+  String body = "<h2>ปลดล็อกสำเร็จ</h2>"
+                "<div class='msg-success'>กำลังกลับไปหน้าแรก...</div>";
+  String successHtml = "<!DOCTYPE html><html><head><meta charset='utf-8'>"
+                        "<meta http-equiv='refresh' content='3;url=/'>"
+                        "<meta name='viewport' content='width=device-width, initial-scale=1'>"
+                        "<style>*{box-sizing:border-box;margin:0;padding:0;}"
+                        "body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;"
+                        "background:linear-gradient(180deg,#eef1f6 0%,#e6ebf7 100%);"
+                        "min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;}"
+                        ".card{background:#fff;border-radius:20px;padding:32px 28px;max-width:340px;width:100%;"
+                        "box-shadow:0 20px 50px rgba(37,99,235,0.18);text-align:center;}"
+                        ".card h2{font-size:20px;margin-bottom:8px;}"
+                        ".msg-success{color:#15803d;background:#f0fdf4;border:1px solid #bbf7d0;"
+                        "padding:10px 14px;border-radius:10px;font-size:14px;}"
+                        "</style></head><body><div class='card'>" + body + "</div></body></html>";
+  offlineServer.send(200, "text/html; charset=utf-8", successHtml);
+
+  Serial.println("Unlocking door (offline code)...");
+  relayOn();
+  for (int remaining = UNLOCK_DURATION_SEC; remaining > 0; remaining--) {
+    lcdShow("Door Unlocked!", "Lock in " + String(remaining) + "s");
+    unsigned long stepStart = millis();
+    while (millis() - stepStart < 1000) {
+      dnsServer.processNextRequest();
+      offlineServer.handleClient();
+      delay(10);
+    }
+  }
+  relayOff();
+  Serial.println("Door relay reset (locked again)");
+  lcdShow("Connect to WiFi:", String(OFFLINE_AP_SSID));
+}
+
+void startOfflineAP() {
+  if (apModeActive) return;
+  Serial.println("เปิดโหมดฮอตสปอตสำรอง");
+
+  webSocket.disconnect(); // ตัดการเชื่อมต่อเดิมทิ้ง กันสถานะ wsConnected ค้างเป็น true จากก่อนหน้า
+  wsConnected = false;
+
+  WiFi.mode(WIFI_AP_STA);
+  WiFi.softAP(OFFLINE_AP_SSID);
+
+  IPAddress apIP = WiFi.softAPIP();
+  dnsServer.start(DNS_PORT, "*", apIP);
+
+  offlineServer.on("/generate_204", handleCaptivePortalRedirect);
+  offlineServer.on("/gen_204", handleCaptivePortalRedirect);
+  offlineServer.on("/hotspot-detect.html", handleCaptivePortalRedirect);
+  offlineServer.on("/library/test/success.html", handleCaptivePortalRedirect);
+  offlineServer.on("/ncsi.txt", handleCaptivePortalRedirect);
+  offlineServer.on("/connecttest.txt", handleCaptivePortalRedirect);
+  offlineServer.onNotFound(handleCaptivePortalRedirect);
+
+  offlineServer.begin();
+  apModeActive = true;
+  buttonPrevState = digitalRead(BUTTON_PIN); // sync สถานะปุ่มก่อนเข้าโหมด AP กันจับ edge ผิดพลาดตอนสลับโหมด
+  lcdShow("Connect to WiFi:", String(OFFLINE_AP_SSID));
+}
+
+void stopOfflineAP() {
+  if (!apModeActive) return;
+  Serial.println("ปิดโหมดฮอตสปอตสำรอง");
+  dnsServer.stop();
+  WiFi.softAPdisconnect(true);
+  WiFi.mode(WIFI_STA);
+  apModeActive = false;
+  buttonPrevState = digitalRead(BUTTON_PIN); // sync สถานะปุ่มก่อนกลับโหมดปกติ กันจับ edge ผิดพลาดตอนสลับโหมด
+  showReadyStatus();
+
+  webSocket.disconnect();
+  if (USE_TLS) {
+    webSocket.beginSSL(WS_HOST, WS_PORT, WS_PATH);
+  } else {
+    webSocket.begin(WS_HOST, WS_PORT, WS_PATH);
+  }
+}
+
+void webSocketEvent(WStype_t type, uint8_t* payload, size_t length) {
+  switch (type) {
+    case WStype_DISCONNECTED:
+      Serial.println("[WS] disconnected");
+      wsConnected = false;
+      showReadyStatus();
+      break;
+
+    case WStype_CONNECTED:
+      Serial.println("[WS] connected to backend");
+      wsConnected = true;
+      showReadyStatus();
+      reportUsedCodesToBackend();
+      break;
+
+    case WStype_TEXT: {
+      StaticJsonDocument<1024> doc;
+      DeserializationError err = deserializeJson(doc, payload, length);
+      if (err) return;
+
+      String msgType = doc["type"] | "";
+      if (msgType == "arm") {
+        armedRequestId = doc["requestId"] | "";
+        doorArmed = true;
+        armedUntilMillis = millis() + ARM_WINDOW_MS;
+        lastShownArmSecond = -1;
+
+        StaticJsonDocument<128> ackDoc;
+        ackDoc["type"] = "armed_ack";
+        ackDoc["requestId"] = armedRequestId;
+        String out;
+        serializeJson(ackDoc, out);
+        webSocket.sendTXT(out);
+      } else if (msgType == "sync_codes") {
+        JsonArray codes = doc["codes"].as<JsonArray>();
+        for (JsonObject c : codes) {
+          int idx = c["index"];
+          String code = c["code"].as<String>();
+          bool usedFromBackend = c["used"] | false;
+          if (idx >= 0 && idx < 10) {
+            if (offlineCodes[idx] != code) {
+              saveOfflineCode(idx, code);
+            } else if (usedFromBackend && !codeUsed[idx]) {
+              markCodeUsedLocally(idx);
+            }
+          }
+        }
+        Serial.println("ซิงก์ชุดรหัสฉุกเฉินจาก backend เรียบร้อย");
+      }
+      break;
+    }
+
+    default:
+      break;
+  }
+}
+
+void setup() {
+  loadOfflineCodesFromStorage();
+  Serial.begin(115200);
+  pinMode(RELAY_PIN, OUTPUT);
+  pinMode(BUTTON_PIN, INPUT_PULLUP);
+  relayOff();
+  buttonPrevState = digitalRead(BUTTON_PIN);
+
+  Wire.begin();
+  lcd.init();
+  lcd.backlight();
+  lcdShow(ROOM_LABEL, "Starting...");
+
+  lcdShow("Connecting WiFi", String(WIFI_SSID));
+  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+  WiFi.setAutoReconnect(true);
+  WiFi.persistent(true);
+  Serial.print("Connecting to WiFi");
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println();
+  Serial.print("WiFi connected, IP: ");
+  Serial.println(WiFi.localIP());
+
+  lcdShow("WiFi Connected", WiFi.localIP().toString());
+  delay(1500);
+
+  lcdShow("Connecting", "to Server...");
+  if (USE_TLS) {
+    webSocket.beginSSL(WS_HOST, WS_PORT, WS_PATH);
+  } else {
+    webSocket.begin(WS_HOST, WS_PORT, WS_PATH);
+  }
+  webSocket.onEvent(webSocketEvent);
+  webSocket.setReconnectInterval(10000);
+
+  webSocket.enableHeartbeat(15000, 3000, 2);
+  offlineServer.on("/", handleOfflineRoot);
+  offlineServer.on("/unlock", HTTP_POST, handleOfflineUnlock);
+}
+
+unsigned long lastWifiCheck = 0;
+
+// void loop() {
+//   if (millis() - lastWifiCheck > 3000) {
+//     lastWifiCheck = millis();
+//     if (WiFi.status() != WL_CONNECTED) {
+//       Serial.println("WiFi หลุด! กำลังพยายามต่อใหม่...");
+//       WiFi.reconnect();
+//     }
+//   }
+
+//   webSocket.loop(); // เรียกทุกครั้งไม่ว่าจะอยู่โหมดไหน เพื่อให้ wsConnected อัปเดตได้แม้อยู่ใน AP mode (WIFI_AP_STA ยังใช้ STA คู่ขนานได้)
+
+//   if (apModeActive) {
+//     dnsServer.processNextRequest();
+//     offlineServer.handleClient();
+//     checkApExitButton();
+
+//     if (wsConnected) {
+//       Serial.println("Server กลับมาใช้งานได้แล้ว ออกจาก AP mode อัตโนมัติ");
+//       stopOfflineAP();
+//     }
+//   } else {
+//     checkArmExpiry();
+//     checkButton();
+//   }
+// }
+
+void loop() {
+  checkResetHold(); // เช็คก่อนสุดเสมอ ไม่ขึ้นกับโหมดไหนๆ เพื่อให้ปุ่มรีเซ็ตใช้ได้ตลอดเวลา
+
+  if (millis() - lastWifiCheck > 3000) {
+    lastWifiCheck = millis();
+    if (WiFi.status() != WL_CONNECTED) {
+      Serial.println("WiFi หลุด! กำลังพยายามต่อใหม่...");
+      WiFi.reconnect();
+    }
+  }
+
+  webSocket.loop();
+
+  if (apModeActive) {
+    dnsServer.processNextRequest();
+    offlineServer.handleClient();
+    checkApExitButton();
+
+    if (wsConnected) {
+      Serial.println("Server กลับมาใช้งานได้แล้ว ออกจาก AP mode อัตโนมัติ");
+      stopOfflineAP();
+    }
+  } else {
+    checkArmExpiry();
+    checkButton();
+  }
+}
