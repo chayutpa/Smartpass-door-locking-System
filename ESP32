@@ -565,32 +565,6 @@ void setup() {
 
 unsigned long lastWifiCheck = 0;
 
-// void loop() {
-//   if (millis() - lastWifiCheck > 3000) {
-//     lastWifiCheck = millis();
-//     if (WiFi.status() != WL_CONNECTED) {
-//       Serial.println("WiFi หลุด! กำลังพยายามต่อใหม่...");
-//       WiFi.reconnect();
-//     }
-//   }
-
-//   webSocket.loop(); // เรียกทุกครั้งไม่ว่าจะอยู่โหมดไหน เพื่อให้ wsConnected อัปเดตได้แม้อยู่ใน AP mode (WIFI_AP_STA ยังใช้ STA คู่ขนานได้)
-
-//   if (apModeActive) {
-//     dnsServer.processNextRequest();
-//     offlineServer.handleClient();
-//     checkApExitButton();
-
-//     if (wsConnected) {
-//       Serial.println("Server กลับมาใช้งานได้แล้ว ออกจาก AP mode อัตโนมัติ");
-//       stopOfflineAP();
-//     }
-//   } else {
-//     checkArmExpiry();
-//     checkButton();
-//   }
-// }
-
 void loop() {
   checkResetHold(); // เช็คก่อนสุดเสมอ ไม่ขึ้นกับโหมดไหนๆ เพื่อให้ปุ่มรีเซ็ตใช้ได้ตลอดเวลา
 
