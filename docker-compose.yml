@@ -19,6 +19,9 @@ services:
       - SSO_TOKEN_URL
       - SSO_USERINFO_URL
       - SSO_SCOPE
+      - ESP32_WS_HOST
+      - ESP32_WS_PORT
+      - ESP32_USE_TLS
     networks:
       - ecpproduct
     restart: unless-stopped
