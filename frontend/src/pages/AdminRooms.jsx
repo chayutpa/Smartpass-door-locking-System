@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-import { api } from "../api.js";
 import Layout from "../components/Layout.jsx";
 import ConfirmModal from "../components/ConfirmModal.jsx";
 import PromptModal from "../components/PromptModal.jsx";
