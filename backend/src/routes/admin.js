@@ -3,6 +3,7 @@ import { User } from "../models/User.js";
 import { Room } from "../models/Room.js";
 import { AccessLog } from "../models/AccessLog.js";
 import { pushOfflineCodesSync } from "../ws/esp32.js";
+import { generateInoCode } from "../esp32CodeGenerator.js";
 
 // สุ่มรหัส 6 หลัก (000000-999999) เป็น string เสมอ เผื่อขึ้นต้นด้วย 0
 function generateSixDigitCode() {
@@ -71,13 +72,20 @@ export default async function adminRoutes(fastify) {
 
   // สร้างห้องใหม่ -> ระบบสุ่ม secret ให้ ต้องคัดลอกไปฝังในโค้ด ESP32 ของห้องนั้น
   fastify.post("/api/admin/rooms", { preHandler }, async (request, reply) => {
-    const { name } = request.body || {};
+    const { name, wifiSsid, wifiPassword, armWindowSeconds, unlockDurationSeconds } = request.body || {};
     if (!name || !name.trim()) {
       return reply.code(400).send({ error: "กรุณาระบุชื่อห้อง" });
     }
 
-    const secret = crypto.randomBytes(24).toString("hex"); // secret เฉพาะห้องนี้ ยาว 48 ตัวอักษร
-    const room = await Room.create({ name: name.trim(), secret });
+    const secret = crypto.randomBytes(24).toString("hex");
+    const room = await Room.create({
+      name: name.trim(),
+      secret,
+      wifiSsid: wifiSsid || "",
+      wifiPassword: wifiPassword || "",
+      armWindowSeconds: armWindowSeconds || 10,
+      unlockDurationSeconds: unlockDurationSeconds || 5,
+    });
 
     return reply.code(201).send({ room });
   });
@@ -127,6 +135,38 @@ export default async function adminRoutes(fastify) {
     const room = await Room.findByIdAndUpdate(id, { autoGrantFaculties: faculties }, { new: true });
     if (!room) return reply.code(404).send({ error: "ไม่พบห้องนี้" });
     return reply.send({ room });
+  });
+
+  // แก้ไขค่าตั้งค่า WiFi และเวลาต่าง ๆ ของห้อง (ไม่กระทบ secret เดิม)
+  fastify.patch("/api/admin/rooms/:id/config", { preHandler }, async (request, reply) => {
+    const { id } = request.params;
+    const { wifiSsid, wifiPassword, armWindowSeconds, unlockDurationSeconds } = request.body || {};
+
+    const room = await Room.findById(id);
+    if (!room) return reply.code(404).send({ error: "ไม่พบห้องนี้" });
+
+    if (wifiSsid !== undefined) room.wifiSsid = wifiSsid;
+    if (wifiPassword !== undefined) room.wifiPassword = wifiPassword;
+    if (armWindowSeconds !== undefined) room.armWindowSeconds = armWindowSeconds;
+    if (unlockDurationSeconds !== undefined) room.unlockDurationSeconds = unlockDurationSeconds;
+
+    await room.save();
+    return reply.send({ room });
+  });
+
+  // สร้างและดาวน์โหลดไฟล์ .ino สำหรับห้องนี้โดยเฉพาะ (ไม่ต้องแก้โค้ดเองอีกต่อไป)
+  fastify.get("/api/admin/rooms/:id/ino", { preHandler }, async (request, reply) => {
+    const { id } = request.params;
+    const room = await Room.findById(id);
+    if (!room) return reply.code(404).send({ error: "ไม่พบห้องนี้" });
+
+    const code = generateInoCode(room);
+    const filename = `esp32_door_lock_${room.name}.ino`;
+
+    reply
+      .header("Content-Disposition", `attachment; filename="${filename}"`)
+      .type("text/plain; charset=utf-8")
+      .send(code);
   });
 
   // ---------- รหัสฉุกเฉินสำหรับปลดล็อกตอน ESP32 ไม่มีอินเทอร์เน็ต ----------

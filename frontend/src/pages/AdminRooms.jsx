@@ -3,6 +3,8 @@ import { api } from "../api.js";
 import Layout from "../components/Layout.jsx";
 import ConfirmModal from "../components/ConfirmModal.jsx";
 import PromptModal from "../components/PromptModal.jsx";
+import { api, API_URL } from "../api.js";
+import RoomConfigModal from "../components/RoomConfigModal.jsx";
 
 export default function AdminRooms() {
   const [rooms, setRooms] = useState([]);
@@ -14,6 +16,11 @@ export default function AdminRooms() {
   const [confirmAction, setConfirmAction] = useState(null); // {title, message, danger, confirmLabel, onConfirm}
   const [renameTarget, setRenameTarget] = useState(null); // room ที่กำลังเปลี่ยนชื่ออยู่
   const [copied, setCopied] = useState(false);
+  const [newWifiSsid, setNewWifiSsid] = useState("");
+  const [newWifiPassword, setNewWifiPassword] = useState("");
+  const [newArmWindow, setNewArmWindow] = useState(10);
+  const [newUnlockDuration, setNewUnlockDuration] = useState(5);
+  const [configRoom, setConfigRoom] = useState(null); // ห้องที่กำลังเปิดหน้าต่างตั้งค่าอยู่
 
   const load = async () => {
     try {
@@ -32,9 +39,19 @@ export default function AdminRooms() {
     e.preventDefault();
     if (!newRoomName.trim()) return;
     try {
-      const { room } = await api.createRoom(newRoomName.trim());
+      const { room } = await api.createRoom({
+        name: newRoomName.trim(),
+        wifiSsid: newWifiSsid.trim(),
+        wifiPassword: newWifiPassword,
+        armWindowSeconds: Number(newArmWindow),
+        unlockDurationSeconds: Number(newUnlockDuration),
+      });
       setRevealedSecret({ roomName: room.name, secret: room.secret });
       setNewRoomName("");
+      setNewWifiSsid("");
+      setNewWifiPassword("");
+      setNewArmWindow(10);
+      setNewUnlockDuration(5);
       load();
     } catch (err) {
       setError(err.message);
@@ -125,14 +142,33 @@ export default function AdminRooms() {
       {/* ---------- เพิ่มห้องใหม่ ---------- */}
       <div className="card">
         <h3 style={{ marginTop: 0 }}>เพิ่มห้องใหม่</h3>
-        <form onSubmit={onCreateRoom} style={{ display: "flex", gap: 8 }}>
-          <input
-            placeholder="ชื่อห้องใหม่ เช่น 313"
-            value={newRoomName}
-            onChange={(e) => setNewRoomName(e.target.value)}
-            style={{ marginBottom: 0 }}
-          />
-          <button style={{ width: 140 }}>เพิ่มห้อง</button>
+        <p style={{ fontSize: 13, color: "#666", marginTop: 0 }}>
+          กรอกค่าตั้งค่าไว้ล่วงหน้าได้เลย ระบบจะสร้างไฟล์ .ino ให้ดาวน์โหลดพร้อมใช้งานทันที (แก้ทีหลังได้จากปุ่ม "ตั้งค่า" ของแต่ละห้อง)
+        </p>
+        <form onSubmit={onCreateRoom}>
+          <label className="auth-field-label">ชื่อห้อง</label>
+          <input placeholder="เช่น 313" value={newRoomName} onChange={(e) => setNewRoomName(e.target.value)} />
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <div>
+              <label className="auth-field-label">ชื่อ WiFi (SSID)</label>
+              <input placeholder="เช่น KKC-RMUTI-Student" value={newWifiSsid} onChange={(e) => setNewWifiSsid(e.target.value)} />
+            </div>
+            <div>
+              <label className="auth-field-label">รหัสผ่าน WiFi</label>
+              <input placeholder="รหัสผ่าน WiFi" value={newWifiPassword} onChange={(e) => setNewWifiPassword(e.target.value)} />
+            </div>
+            <div>
+              <label className="auth-field-label">นับถอยหลังรอกดปุ่ม (วิ)</label>
+              <input type="number" min="3" max="60" value={newArmWindow} onChange={(e) => setNewArmWindow(e.target.value)} />
+            </div>
+            <div>
+              <label className="auth-field-label">ปลดล็อกค้างไว้ (วิ)</label>
+              <input type="number" min="1" max="30" value={newUnlockDuration} onChange={(e) => setNewUnlockDuration(e.target.value)} />
+            </div>
+          </div>
+
+          <button style={{ marginTop: 4 }}>เพิ่มห้อง</button>
         </form>
       </div>
 
@@ -147,6 +183,27 @@ export default function AdminRooms() {
                 <button className="secondary" style={{ width: "auto", padding: "6px 10px" }} onClick={() => setQrRoom(room)}>
                   QR Code
                 </button>
+                <button className="secondary" style={{ width: "auto", padding: "6px 10px" }} onClick={() => setConfigRoom(room)}>
+                  ตั้งค่า WiFi/เวลา
+                </button>
+                <a
+                  href={`${API_URL}/api/admin/rooms/${room._id}/ino`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="secondary"
+                  style={{
+                    width: "auto",
+                    padding: "6px 10px",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    textDecoration: "none",
+                    borderRadius: 12,
+                    fontSize: 14,
+                    fontWeight: 600,
+                  }}
+                >
+                  ดาวน์โหลด .ino
+                </a>
                 <button className="secondary" style={{ width: "auto", padding: "6px 10px" }} onClick={() => onRenameRoom(room)}>
                   เปลี่ยนชื่อ
                 </button>
@@ -230,73 +287,91 @@ export default function AdminRooms() {
       })}
 
       {/* ---------- modal: secret ที่เพิ่งสร้าง/สุ่มใหม่ ---------- */}
-      {revealedSecret && (
-        <div className="modal-backdrop" onClick={() => setRevealedSecret(null)}>
-          <div className="modal-box" onClick={(e) => e.stopPropagation()}>
-            <h2>Secret สำหรับห้อง {revealedSecret.roomName}</h2>
-            <p>
-              คัดลอกค่านี้ไปใส่ตัวแปร <code>WS_PATH</code> ในโค้ด ESP32 ของห้องนี้ (ส่วน <code>secret=...</code>) — ค่านี้จะไม่แสดงซ้ำอีก
-            </p>
-            <code style={{ wordBreak: "break-all", fontSize: 13, display: "block", marginBottom: 4 }}>
-              {revealedSecret.secret}
-            </code>
-            <button className="copy-btn secondary" onClick={copySecret}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <rect x="9" y="9" width="13" height="13" rx="2" />
-                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-              </svg>
-              {copied ? "คัดลอกแล้ว!" : "คัดลอก"}
-            </button>
-            <br />
-            <button className="secondary" onClick={() => setRevealedSecret(null)} style={{ marginTop: 12 }}>
-              ปิด
-            </button>
+      {
+        revealedSecret && (
+          <div className="modal-backdrop" onClick={() => setRevealedSecret(null)}>
+            <div className="modal-box" onClick={(e) => e.stopPropagation()}>
+              <h2>Secret สำหรับห้อง {revealedSecret.roomName}</h2>
+              <p>
+                คัดลอกค่านี้ไปใส่ตัวแปร <code>WS_PATH</code> ในโค้ด ESP32 ของห้องนี้ (ส่วน <code>secret=...</code>) — ค่านี้จะไม่แสดงซ้ำอีก
+              </p>
+              <code style={{ wordBreak: "break-all", fontSize: 13, display: "block", marginBottom: 4 }}>
+                {revealedSecret.secret}
+              </code>
+              <button className="copy-btn secondary" onClick={copySecret}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <rect x="9" y="9" width="13" height="13" rx="2" />
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                </svg>
+                {copied ? "คัดลอกแล้ว!" : "คัดลอก"}
+              </button>
+              <br />
+              <button className="secondary" onClick={() => setRevealedSecret(null)} style={{ marginTop: 12 }}>
+                ปิด
+              </button>
+            </div>
           </div>
-        </div>
-      )}
+        )
+      }
 
       {/* ---------- modal: QR code ---------- */}
-      {qrRoom && (
-        <div className="modal-backdrop" onClick={() => setQrRoom(null)}>
-          <div className="modal-box" style={{ textAlign: "center" }} onClick={(e) => e.stopPropagation()}>
-            <h2>QR Code ห้อง {qrRoom.name}</h2>
-            <p>พิมพ์ติดไว้หน้าห้องนี้ ให้ user สแกนเพื่อปลดล็อก</p>
-            <img
-              src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(
-                `${window.location.origin}/r/${qrRoom._id}`
-              )}`}
-              alt={`QR code ห้อง ${qrRoom.name}`}
-              style={{ width: "100%", maxWidth: 260, borderRadius: 12 }}
-            />
-            <p style={{ fontSize: 12, color: "#888", wordBreak: "break-all" }}>
-              {window.location.origin}/r/{qrRoom._id}
-            </p>
-            <button className="secondary" onClick={() => setQrRoom(null)}>
-              ปิด
-            </button>
+      {
+        qrRoom && (
+          <div className="modal-backdrop" onClick={() => setQrRoom(null)}>
+            <div className="modal-box" style={{ textAlign: "center" }} onClick={(e) => e.stopPropagation()}>
+              <h2>QR Code ห้อง {qrRoom.name}</h2>
+              <p>พิมพ์ติดไว้หน้าห้องนี้ ให้ user สแกนเพื่อปลดล็อก</p>
+              <img
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(
+                  `${window.location.origin}/r/${qrRoom._id}`
+                )}`}
+                alt={`QR code ห้อง ${qrRoom.name}`}
+                style={{ width: "100%", maxWidth: 260, borderRadius: 12 }}
+              />
+              <p style={{ fontSize: 12, color: "#888", wordBreak: "break-all" }}>
+                {window.location.origin}/r/{qrRoom._id}
+              </p>
+              <button className="secondary" onClick={() => setQrRoom(null)}>
+                ปิด
+              </button>
+            </div>
           </div>
-        </div>
-      )}
-      {renameTarget && (
-        <PromptModal
-          title={`เปลี่ยนชื่อห้อง ${renameTarget.name}`}
-          defaultValue={renameTarget.name}
-          confirmLabel="บันทึก"
-          onConfirm={confirmRename}
-          onCancel={() => setRenameTarget(null)}
-        />
-      )}
+        )
+      }
+      {
+        renameTarget && (
+          <PromptModal
+            title={`เปลี่ยนชื่อห้อง ${renameTarget.name}`}
+            defaultValue={renameTarget.name}
+            confirmLabel="บันทึก"
+            onConfirm={confirmRename}
+            onCancel={() => setRenameTarget(null)}
+          />
+        )
+      }
 
-      {confirmAction && (
-        <ConfirmModal
-          title={confirmAction.title}
-          message={confirmAction.message}
-          confirmLabel={confirmAction.confirmLabel}
-          danger={confirmAction.danger}
-          onConfirm={confirmAction.onConfirm}
-          onCancel={() => setConfirmAction(null)}
+      {
+        confirmAction && (
+          <ConfirmModal
+            title={confirmAction.title}
+            message={confirmAction.message}
+            confirmLabel={confirmAction.confirmLabel}
+            danger={confirmAction.danger}
+            onConfirm={confirmAction.onConfirm}
+            onCancel={() => setConfirmAction(null)}
+          />
+        )
+      }
+      {configRoom && (
+        <RoomConfigModal
+          room={configRoom}
+          onDone={() => {
+            setConfigRoom(null);
+            load();
+          }}
+          onCancel={() => setConfigRoom(null)}
         />
       )}
-    </Layout>
+    </Layout >
   );
 }
