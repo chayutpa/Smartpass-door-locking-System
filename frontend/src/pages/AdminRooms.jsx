@@ -189,17 +189,7 @@ export default function AdminRooms() {
                   href={`${API_URL}/api/admin/rooms/${room._id}/ino`}
                   target="_blank"
                   rel="noreferrer"
-                  className="secondary"
-                  style={{
-                    width: "auto",
-                    padding: "6px 10px",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    textDecoration: "none",
-                    borderRadius: 12,
-                    fontSize: 14,
-                    fontWeight: 600,
-                  }}
+                  className="secondary btn-link"
                 >
                   ดาวน์โหลด .ino
                 </a>

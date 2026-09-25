@@ -77,7 +77,12 @@ export default function Dashboard() {
         );
       })}
       {armedRoom && (
-        <CountdownModal roomName={armedRoom.name} seconds={10} onClose={() => setArmedRoom(null)} />
+        <CountdownModal
+          roomId={armedRoom.id}
+          roomName={armedRoom.name}
+          seconds={armedRoom.armWindowSeconds || 10}
+          onClose={() => setArmedRoom(null)}
+        />
       )}
     </Layout>
   );

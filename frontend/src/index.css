@@ -919,3 +919,13 @@ a.sidebar-contact-item:hover {
 
   /* ค่าติดลบ = หมุนทวนเข็มนาฬิกา */
 }
+
+/* ปุ่มที่จริง ๆ เป็นลิงก์ (a tag) แต่อยากให้หน้าตาเหมือน button.secondary เป๊ะ */
+.btn-link {
+  width: auto;
+  padding: 6px 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+}

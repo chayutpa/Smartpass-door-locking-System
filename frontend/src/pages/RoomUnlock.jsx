@@ -94,7 +94,12 @@ export default function RoomUnlock() {
         </div>
       )}
       {armed && room && (
-        <CountdownModal roomName={room.name} seconds={10} onClose={() => setArmed(false)} />
+        <CountdownModal
+          roomId={roomId}
+          roomName={room.name}
+          seconds={room.armWindowSeconds || 10}
+          onClose={() => setArmed(false)}
+        />
       )}
     </Layout>
   );
