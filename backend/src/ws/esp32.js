@@ -84,15 +84,30 @@ export default async function esp32WsRoute(fastify) {
         Room.findById(roomId)
           .then((r) => {
             if (!r) return;
-            fastify.log.info(`อัปเดต Room สำเร็จ: ${JSON.stringify(r.offlineCodes)}`);
             let changed = false;
+            const newlyUsedIndices = [];
             for (const index of msg.usedIndices) {
               if (r.offlineCodes[index] && !r.offlineCodes[index].used) {
                 r.offlineCodes[index].used = true;
                 changed = true;
+                newlyUsedIndices.push(index);
               }
             }
-            if (changed) return r.save();
+            if (!changed) return;
+
+            return r.save().then(() => {
+              // บันทึกประวัติการปลดล็อกด้วยรหัสฉุกเฉิน (ไม่มีบัญชีผู้ใช้ผูกอยู่ เพราะปลดล็อกแบบไม่ต้อง login)
+              const logPromises = newlyUsedIndices.map((index) =>
+                AccessLog.create({
+                  username: `รหัสฉุกเฉิน #${index + 1}`,
+                  room: r._id,
+                  roomName: r.name,
+                  action: "offline_unlock_success",
+                  detail: `ปลดล็อกด้วยรหัสฉุกเฉินชุดที่ ${index + 1} ขณะไม่มีอินเทอร์เน็ต`,
+                })
+              );
+              return Promise.all(logPromises);
+            });
           })
           .catch((err) => fastify.log.error(`อัปเดตสถานะรหัสฉุกเฉินของห้อง ${room.name} ล้มเหลว: ${err.message}`));
       }

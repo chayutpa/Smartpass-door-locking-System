@@ -128,10 +128,10 @@ export default function AdminLogs() {
               filteredLogs.map((log) => (
                 <tr key={log._id}>
                   <td>{new Date(log.createdAt).toLocaleString("th-TH")}</td>
-                  <td>{log.user?.displayName || log.username}</td>
-                  <td>{log.user?.studentId || "-"}</td>
+                  <td>{log.displayName || log.user?.displayName || log.username}</td>
+                  <td>{log.studentId || log.user?.studentId || "-"}</td>
                   <td>{log.roomName || "-"}</td>
-                  <td>{log.action}</td>
+                  <td>{formatAction(log.action)}</td>
                 </tr>
               ))
             )}
@@ -140,4 +140,14 @@ export default function AdminLogs() {
       </div>
     </Layout>
   );
+}
+
+function formatAction(action) {
+  const labels = {
+    unlock_request: "ขอสิทธิ์ปลดล็อก",
+    unlock_success: "ปลดล็อกสำเร็จ",
+    unlock_failed: "ปลดล็อกไม่สำเร็จ",
+    offline_unlock_success: "ปลดล็อกด้วยรหัสฉุกเฉิน (Offline)",
+  };
+  return labels[action] || action;
 }

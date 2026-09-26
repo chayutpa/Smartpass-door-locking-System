@@ -19,7 +19,9 @@ export default async function doorRoutes(fastify) {
 
     if (!canUnlock) {
       await AccessLog.create({
-        user: sub, username: ssoId, room: room._id, roomName: room.name,
+        user: sub, username: ssoId,
+        displayName: currentUser?.displayName || "", studentId: currentUser?.studentId || "",
+        room: room._id, roomName: room.name,
         action: "unlock_failed", detail: "ไม่มีสิทธิ์ปลดล็อกห้องนี้",
       });
       return reply.code(403).send({ error: `คุณไม่มีสิทธิ์ปลดล็อกห้อง ${room.name} กรุณาติดต่อ admin` });
@@ -27,7 +29,8 @@ export default async function doorRoutes(fastify) {
 
     const requestId = crypto.randomUUID();
     await AccessLog.create({
-      user: sub, username: ssoId, room: room._id, roomName: room.name,
+      user: sub, username: ssoId,
+      displayName: currentUser?.displayName || "", studentId: currentUser?.studentId || "", room: room._id, roomName: room.name,
       action: "unlock_request", detail: requestId,
     });
 
@@ -39,7 +42,9 @@ export default async function doorRoutes(fastify) {
       });
     } catch (err) {
       await AccessLog.create({
-        user: sub, username: ssoId, room: room._id, roomName: room.name,
+        user: sub, username: ssoId,
+        displayName: currentUser?.displayName || "", studentId: currentUser?.studentId || "",
+        room: room._id, roomName: room.name,
         action: "unlock_failed", detail: err.message,
       });
       return reply.code(502).send({ error: `ขอสิทธิ์ห้อง ${room.name} ไม่สำเร็จ: ${err.message}` });
