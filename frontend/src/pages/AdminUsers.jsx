@@ -124,7 +124,18 @@ export default function AdminUsers() {
                       {rooms.map((room) => (
                         <td key={room._id} style={{ textAlign: "center" }}>
                           {u.role === "admin" ? (
-                            <span title="admin ปลดล็อกได้ทุกห้องอัตโนมัติ">—</span>
+                            <svg
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="#16a34a"
+                              strokeWidth="3"
+                              width="18"
+                              height="18"
+                              title="admin ปลดล็อกได้ทุกห้องอัตโนมัติ"
+                              style={{ display: "inline-block" }}
+                            >
+                              <path d="M20 6 9 17l-5-5" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
                           ) : (
                             <input
                               type="checkbox"

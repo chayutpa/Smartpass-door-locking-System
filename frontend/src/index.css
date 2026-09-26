@@ -91,13 +91,13 @@ button:disabled {
   cursor: not-allowed;
 }
 
-button.secondary {
+.secondary {
   background: #eef2ff;
-  color: var(--brand-600);
+  color: #1d4ed8;
   box-shadow: none;
 }
 
-button.secondary:hover:not(:disabled) {
+.secondary:hover:not(:disabled) {
   background: #e0e7ff;
 }
 
@@ -928,4 +928,10 @@ a.sidebar-contact-item:hover {
   align-items: center;
   justify-content: center;
   text-decoration: none;
+  border-radius: 12px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease;
 }
