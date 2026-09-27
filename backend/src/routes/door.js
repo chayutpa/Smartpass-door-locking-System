@@ -36,7 +36,13 @@ export default async function doorRoutes(fastify) {
 
     try {
       // ส่งคำขอไปให้ ESP32 "arm" ตัวเองรอ 10 วิ ยังไม่ปลดล็อกจริง ต้องมีคนไปกดปุ่มที่หน้าห้องก่อน
-      await sendArmCommand(roomId, requestId, { userId: sub, username: ssoId, roomName: room.name });
+      await sendArmCommand(roomId, requestId, {
+        userId: sub,
+        username: ssoId,
+        displayName: currentUser?.displayName || "",
+        studentId: currentUser?.studentId || "",
+        roomName: room.name,
+      });
       return reply.send({
         message: `ส่งคำขอสำเร็จ! กรุณากดปุ่มที่หน้าห้อง ${room.name} ภายใน 10 วินาที`,
       });
