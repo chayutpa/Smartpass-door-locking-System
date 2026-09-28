@@ -110,11 +110,11 @@ export default function AdminLogs() {
         <table>
           <thead>
             <tr>
-              <th>เวลา</th>
-              <th>ชื่อผู้ใช้</th>
-              <th>รหัสนักศึกษา</th>
-              <th>ห้อง</th>
-              <th>สถานะ</th>
+              <th style={{ width: "18%" }}>เวลา</th>
+              <th style={{ width: "32%" }}>ชื่อผู้ใช้</th>
+              <th style={{ width: "18%" }}>รหัสนักศึกษา</th>
+              <th style={{ width: "10%" }}>ห้อง</th>
+              <th style={{ width: "22%" }}>สถานะ</th>
             </tr>
           </thead>
           <tbody>
