@@ -31,7 +31,7 @@ export default async function doorRoutes(fastify) {
     await AccessLog.create({
       user: sub, username: ssoId,
       displayName: currentUser?.displayName || "", studentId: currentUser?.studentId || "", room: room._id, roomName: room.name,
-      action: "unlock_request", detail: requestId,
+      action: "unlock_request", detail: requestId, requestId,
     });
 
     try {
@@ -45,6 +45,7 @@ export default async function doorRoutes(fastify) {
       });
       return reply.send({
         message: `ส่งคำขอสำเร็จ! กรุณากดปุ่มที่หน้าห้อง ${room.name} ภายใน 10 วินาที`,
+        requestId,
       });
     } catch (err) {
       await AccessLog.create({

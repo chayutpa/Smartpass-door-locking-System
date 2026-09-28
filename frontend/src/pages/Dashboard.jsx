@@ -29,8 +29,8 @@ export default function Dashboard() {
     setUnlockingId(room.id);
     setMessages((m) => ({ ...m, [room.id]: null }));
     try {
-      await api.unlockRoom(room.id);
-      setArmedRoom(room); // สำเร็จ -> เปิดโมดัลนับถอยหลังแทนข้อความ inline
+      const data = await api.unlockRoom(room.id);
+      setArmedRoom({ ...room, requestId: data.requestId });
     } catch (err) {
       setMessages((m) => ({ ...m, [room.id]: { type: "error", text: err.message } }));
     } finally {
@@ -78,7 +78,7 @@ export default function Dashboard() {
       })}
       {armedRoom && (
         <CountdownModal
-          roomId={armedRoom.id}
+          requestId={armedRoom.requestId}
           roomName={armedRoom.name}
           seconds={armedRoom.armWindowSeconds || 10}
           onClose={() => setArmedRoom(null)}

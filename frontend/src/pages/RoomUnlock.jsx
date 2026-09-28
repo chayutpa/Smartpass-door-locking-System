@@ -15,6 +15,7 @@ export default function RoomUnlock() {
   const [unlocking, setUnlocking] = useState(false);
   const [message, setMessage] = useState(null);
   const [armed, setArmed] = useState(false);
+  const [armedRequestId, setArmedRequestId] = useState(null);
 
   const loadRoom = async () => {
     try {
@@ -38,7 +39,8 @@ export default function RoomUnlock() {
     setUnlocking(true);
     setMessage(null);
     try {
-      await api.unlockRoom(roomId);
+      const data = await api.unlockRoom(roomId);
+      setArmedRequestId(data.requestId);
       setArmed(true);
     } catch (err) {
       setMessage({ type: "error", text: err.message });
@@ -95,7 +97,7 @@ export default function RoomUnlock() {
       )}
       {armed && room && (
         <CountdownModal
-          roomId={roomId}
+          requestId={armedRequestId}
           roomName={room.name}
           seconds={room.armWindowSeconds || 10}
           onClose={() => setArmed(false)}

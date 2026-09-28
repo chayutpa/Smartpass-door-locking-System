@@ -50,5 +50,5 @@ export const api = {
     request(`/api/admin/rooms/${roomId}/offline-codes/${index}/regenerate`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({}) }),
 
   listLogs: () => request("/api/admin/logs"),
-  checkUnlockStatus: (roomId) => request(`/api/rooms/${roomId}/unlock-status`),
+  checkUnlockStatus: (requestId) => request(`/api/rooms/unlock-status/${requestId}`),
 };

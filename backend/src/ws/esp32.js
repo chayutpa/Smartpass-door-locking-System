@@ -128,7 +128,7 @@ export default async function esp32WsRoute(fastify) {
             user: info.userId, username: info.username,
             displayName: info.displayName || "", studentId: info.studentId || "",
             room: roomId, roomName: info.roomName,
-            action: "unlock_success", detail: msg.requestId,
+            action: "unlock_success", detail: msg.requestId, requestId: msg.requestId,
           }).catch((err) => fastify.log.error(`log unlock_success ล้มเหลว: ${err.message}`));
         }
       }
@@ -142,7 +142,7 @@ export default async function esp32WsRoute(fastify) {
             user: info.userId, username: info.username,
             displayName: info.displayName || "", studentId: info.studentId || "",
             room: roomId, roomName: info.roomName,
-            action: "unlock_failed", detail: "หมดเวลา ไม่มีการกดปุ่มที่หน้าห้อง",
+            action: "unlock_failed", detail: "หมดเวลา ไม่มีการกดปุ่มที่หน้าห้อง", requestId: msg.requestId,
           }).catch((err) => fastify.log.error(`log arm_expired ล้มเหลว: ${err.message}`));
         }
       }

@@ -17,6 +17,7 @@ const accessLogSchema = new mongoose.Schema(
       required: true,
     },
     detail: { type: String, default: "" },
+    requestId: { type: String, default: "", index: true },
   },
   { timestamps: true }
 );

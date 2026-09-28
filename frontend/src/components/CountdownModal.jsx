@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import { api } from "../api.js";
 
-export default function CountdownModal({ roomId, roomName, seconds = 10, onClose }) {
+export default function CountdownModal({ requestId, roomName, seconds = 10, onClose }) {
   const [secondsLeft, setSecondsLeft] = useState(seconds);
   const startTimeRef = useRef(Date.now());
   const onCloseRef = useRef(onClose);
@@ -26,9 +26,9 @@ export default function CountdownModal({ roomId, roomName, seconds = 10, onClose
     // poll เช็คว่ามีคนกดปุ่มที่หน้าห้องสำเร็จแล้วหรือยัง ถ้าใช่ให้ปิด modal ทันทีไม่ต้องรอครบเวลา
     let cancelled = false;
     const pollStatus = async () => {
-      if (!roomId || cancelled) return;
+      if (!requestId || cancelled) return;
       try {
-        const data = await api.checkUnlockStatus(roomId);
+        const data = await api.checkUnlockStatus(requestId);
         if (data.status === "success" || data.status === "failed") {
           if (!cancelled) {
             clearInterval(interval);
@@ -47,7 +47,7 @@ export default function CountdownModal({ roomId, roomName, seconds = 10, onClose
       clearInterval(interval);
       clearInterval(statusInterval);
     };
-  }, [seconds, roomId]);
+  }, [seconds, requestId]);
 
   const progress = (secondsLeft / seconds) * 100;
 

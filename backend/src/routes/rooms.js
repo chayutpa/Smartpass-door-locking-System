@@ -22,19 +22,16 @@ export default async function roomsRoutes(fastify) {
 
     return reply.send({ rooms: result });
   });
-    // เช็คสถานะล่าสุดของประวัติการปลดล็อก ใช้ตอน frontend รอดูว่ามีคนกดปุ่มที่หน้าห้องสำเร็จหรือยัง
-  fastify.get("/api/rooms/:roomId/unlock-status", { preHandler: fastify.authenticate }, async (request, reply) => {
-    const { roomId } = request.params;
-    const log = await AccessLog.findOne({ room: roomId, action: { $in: ["unlock_success", "unlock_failed"] } })
-      .sort({ createdAt: -1 })
-      .limit(1);
+  // เช็คสถานะล่าสุดของประวัติการปลดล็อก ใช้ตอน frontend รอดูว่ามีคนกดปุ่มที่หน้าห้องสำเร็จหรือยัง
+  // เช็คผลของคำขอปลดล็อก "รายการเดียว" ตาม requestId ใช้ตอน frontend รอดูว่ามีคนกดปุ่มที่หน้าห้องหรือยัง
+  fastify.get("/api/rooms/unlock-status/:requestId", { preHandler: fastify.authenticate }, async (request, reply) => {
+    const { requestId } = request.params;
+    const log = await AccessLog.findOne({
+      requestId,
+      action: { $in: ["unlock_success", "unlock_failed"] },
+    }).sort({ createdAt: -1 });
 
     if (!log) return reply.send({ status: "pending" });
-
-    // เช็คว่า log ล่าสุดนี้เพิ่งเกิดขึ้นภายใน 30 วิที่ผ่านมาไหม (กันเอา log เก่าจากคำขอครั้งก่อนมาปนกัน)
-    const isRecent = Date.now() - new Date(log.createdAt).getTime() < 30000;
-    if (!isRecent) return reply.send({ status: "pending" });
-
     return reply.send({ status: log.action === "unlock_success" ? "success" : "failed" });
   });
 }
