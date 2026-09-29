@@ -78,12 +78,14 @@ export default function AdminUsers() {
         <table>
           <thead>
             <tr>
-              <th>ผู้ใช้</th>
-              <th>บทบาท</th>
+              <th style={{ width: "34%" }}>ผู้ใช้</th>
+              <th style={{ width: "90px" }}>บทบาท</th>
               {rooms.map((room) => (
-                <th key={room._id}>{room.name}</th>
+                <th key={room._id} style={{ width: "56px", textAlign: "center" }}>
+                  {room.name}
+                </th>
               ))}
-              <th></th>
+              <th style={{ width: "70px" }}></th>
             </tr>
           </thead>
           <tbody>
